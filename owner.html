@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Normal Box - Owner Panel</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="bg-slate-900 font-inter text-gray-100">
+
+    <div id="toast-container" class="fixed top-5 right-5 z-50 flex flex-col gap-2"></div>
+
+    <section id="view-owner-login" class="min-h-screen flex items-center justify-center p-6 fade-in">
+        <div class="bg-slate-800 p-8 rounded-3xl shadow-2xl shadow-black/50 max-w-sm w-full border border-slate-700 relative overflow-hidden">
+            
+            <div class="absolute top-0 left-0 w-full h-2 bg-gradient-to-r from-blue-500 to-purple-600"></div>
+            <div class="absolute -top-10 -right-10 w-32 h-32 bg-blue-600 rounded-full filter blur-3xl opacity-20"></div>
+
+            <div class="text-center mb-8 relative z-10">
+                <div class="w-16 h-16 bg-slate-700 text-blue-400 rounded-2xl flex items-center justify-center text-3xl mx-auto mb-4 shadow-lg">
+                    <i class="fas fa-user-shield"></i>
+                </div>
+                <h1 class="text-2xl font-bold text-white">Owner Access</h1>
+                <p class="text-gray-400 text-sm mt-1">System Administration</p>
+            </div>
+
+            <form onsubmit="handleOwnerLogin(event)" class="relative z-10">
+                <div class="mb-5">
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Owner ID</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-3.5 text-gray-500"><i class="fas fa-user"></i></span>
+                        <input type="text" id="owner-id" class="w-full pl-10 p-3 bg-slate-900 border border-slate-600 rounded-xl text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition placeholder-gray-600" placeholder="Enter ID" required>
+                    </div>
+                </div>
+                <div class="mb-8">
+                    <label class="block text-xs font-bold text-gray-500 uppercase mb-1 ml-1">Password</label>
+                    <div class="relative">
+                        <span class="absolute left-3 top-3.5 text-gray-500"><i class="fas fa-lock"></i></span>
+                        <input type="password" id="owner-pass" class="w-full pl-10 p-3 bg-slate-900 border border-slate-600 rounded-xl text-white outline-none focus:border-blue-500 focus:ring-1 focus:ring-blue-500 transition placeholder-gray-600" placeholder="••••••••" required>
+                    </div>
+                </div>
+                <button type="submit" id="btn-owner-login" class="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-500 hover:to-blue-600 text-white font-bold py-3.5 rounded-xl shadow-lg transition transform active:scale-95 flex items-center justify-center gap-2">
+                    Access Panel <i class="fas fa-arrow-right text-sm"></i>
+                </button>
+            </form>
+            
+            <div class="mt-8 text-center border-t border-slate-700 pt-6">
+                <a href="index.html" class="text-gray-500 hover:text-gray-300 text-xs font-medium transition flex items-center justify-center gap-2 group">
+                    <i class="fas fa-arrow-left group-hover:-translate-x-1 transition"></i> Back to Main Portal
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <section id="view-owner-dash" class="hidden min-h-screen flex fade-in bg-slate-900">
+        
+        <aside class="w-72 bg-slate-800 border-r border-slate-700 fixed h-full z-20 flex flex-col">
+            <div class="p-8 border-b border-slate-700">
+                <div class="flex items-center gap-3 text-blue-400 mb-1">
+                    <div class="w-8 h-8 bg-slate-700 rounded-lg flex items-center justify-center"><i class="fas fa-cube"></i></div>
+                    <h2 class="text-lg font-black tracking-tight text-white">Normal Box</h2>
+                </div>
+                <p class="text-xs text-gray-500 font-medium pl-11">Super Admin</p>
+            </div>
+            
+            <nav class="flex-1 p-4 space-y-1">
+                <button onclick="renderOwnerStats()" class="w-full text-left px-4 py-3 rounded-xl hover:bg-slate-700 text-gray-300 hover:text-white transition flex items-center gap-3 font-medium group">
+                    <div class="w-6 text-center"><i class="fas fa-chart-pie group-hover:text-blue-400 transition"></i></div> Overview
+                </button>
+                <button onclick="renderOwnerInstList()" class="w-full text-left px-4 py-3 rounded-xl hover:bg-slate-700 text-gray-300 hover:text-white transition flex items-center gap-3 font-medium group">
+                    <div class="w-6 text-center"><i class="fas fa-university group-hover:text-blue-400 transition"></i></div> Institutions
+                </button>
+            </nav>
+            
+            <div class="p-6 border-t border-slate-700">
+                <button onclick="logoutOwner()" class="w-full text-left px-4 py-3 text-red-400 bg-red-500/10 hover:bg-red-500/20 rounded-xl transition flex items-center gap-3 font-bold text-sm justify-center border border-red-500/20">
+                    <i class="fas fa-sign-out-alt"></i> Secure Logout
+                </button>
+            </div>
+        </aside>
+
+        <main class="flex-1 ml-72 p-10 overflow-y-auto">
+            <header class="flex justify-between items-center mb-10">
+                <h2 id="owner-page-title" class="text-3xl font-black text-white tracking-tight">System Overview</h2>
+                <div class="flex items-center gap-2 text-xs font-bold text-green-400 bg-slate-800 px-4 py-2 rounded-full border border-slate-700 shadow-lg">
+                    <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse"></span>
+                    SYSTEM ONLINE
+                </div>
+            </header>
+            
+            <div id="owner-content-area">
+                </div>
+        </main>
+    </section>
+
+    <script src="app.js"></script>
+</body>
+</html>

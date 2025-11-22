@@ -1,0 +1,325 @@
+/* --- 1. General Resets & Typography --- */
+:root {
+    --primary: #2563EB;
+    --primary-dark: #1d4ed8;
+    --secondary: #64748b;
+    --bg-body: #f8fafc;
+    --surface: #ffffff;
+}
+
+body {
+    font-family: 'Inter', sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    background-color: var(--bg-body);
+    color: #1e293b;
+    scroll-behavior: smooth;
+}
+
+/* --- 2. Smooth Animations --- */
+.fade-in {
+    animation: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+    opacity: 0;
+    transform: translateY(10px);
+}
+
+@keyframes fadeIn {
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* --- 3. Efficient Button System --- */
+.btn-master {
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    position: relative;
+    overflow: hidden;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    user-select: none;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+}
+
+.btn-master:active {
+    transform: scale(0.97);
+}
+
+.btn-primary {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+    box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.3), 0 2px 4px -1px rgba(37, 99, 235, 0.1);
+    color: white;
+    border: none;
+}
+
+.btn-primary:hover {
+    box-shadow: 0 8px 12px -3px rgba(37, 99, 235, 0.4);
+    transform: translateY(-1px);
+}
+
+.btn-loading {
+    opacity: 0.75;
+    pointer-events: none;
+    cursor: wait;
+}
+
+.spinner {
+    border: 2px solid rgba(255, 255, 255, 0.3);
+    border-radius: 50%;
+    border-top: 2px solid white;
+    width: 16px;
+    height: 16px;
+    animation: spin 0.8s linear infinite;
+    margin-right: 8px;
+    display: inline-block;
+}
+
+@keyframes spin {
+    to { transform: rotate(360deg); }
+}
+
+/* --- 4. Sidebar Navigation --- */
+.nav-item {
+    border-left: 3px solid transparent;
+    transition: all 0.2s ease;
+}
+
+.nav-item.active {
+    background-color: #EFF6FF; /* blue-50 */
+    color: var(--primary);
+    font-weight: 600;
+    border-left: 3px solid var(--primary);
+}
+
+/* --- 5. Form Inputs --- */
+input, select, textarea {
+    transition: border-color 0.2s ease, box-shadow 0.2s ease;
+    background-color: #fff;
+}
+
+input:focus, select:focus, textarea:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.15);
+    outline: none;
+}
+
+/* --- 6. Table Viewing Efficiency --- */
+.table-sticky-header th {
+    position: sticky;
+    top: 0;
+    background-color: #f8fafc; /* Matches body bg */
+    z-index: 5;
+    box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+    font-size: 0.75rem;
+    text-transform: uppercase;
+    color: var(--secondary);
+    letter-spacing: 0.05em;
+}
+
+.table-sticky-col {
+    position: sticky;
+    left: 0;
+    background-color: inherit;
+    z-index: 6;
+    border-right: 1px solid #e2e8f0;
+}
+
+/* Zebra Striping & Hover */
+.table-striped tbody tr:nth-child(even) { background-color: #f8fafc; }
+.table-striped tbody tr:nth-child(odd) { background-color: #ffffff; }
+.table-striped tbody tr:hover { 
+    background-color: #eff6ff; 
+    transition: background-color 0.15s ease; 
+}
+
+/* --- 7. Modal Glassmorphism --- */
+#modal-overlay {
+    background-color: rgba(15, 23, 42, 0.65); /* Dark Slate */
+    backdrop-filter: blur(6px); /* The Glass Effect */
+    z-index: 50; 
+}
+
+/* --- 8. Marksheet Specifics (Result Output) --- */
+#mk-printable {
+    background-color: white;
+    position: relative;
+    overflow: hidden;
+    color: #1f2937;
+}
+
+/* Formal Header */
+.mk-header {
+    border-bottom: 2px solid #1f2937; /* Dark Gray */
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    text-align: center;
+}
+
+.mk-title {
+    font-family: 'Space Grotesk', sans-serif;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+}
+
+/* Student Details Grid */
+.mk-details-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+    border: 1px solid #e5e7eb;
+    padding: 1.5rem;
+    border-radius: 0.5rem;
+    background-color: #f9fafb;
+}
+
+.mk-label {
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    color: #6b7280;
+    font-weight: 700;
+    margin-bottom: 0.25rem;
+}
+
+.mk-value {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #111827;
+}
+
+/* Marks Table */
+.mk-table {
+    width: 100%;
+    border-collapse: collapse;
+    margin-bottom: 2rem;
+    font-size: 0.9rem;
+}
+
+.mk-table th {
+    background-color: #1f2937;
+    color: white;
+    text-transform: uppercase;
+    font-size: 0.75rem;
+    padding: 0.75rem;
+    text-align: center;
+    font-weight: 600;
+}
+
+.mk-table th:first-child { text-align: left; }
+
+.mk-table td {
+    padding: 0.75rem;
+    border-bottom: 1px solid #e5e7eb;
+    text-align: center;
+    font-weight: 500;
+}
+
+.mk-table td:first-child { text-align: left; font-weight: 600; color: #374151; }
+
+/* Grand Total Row */
+.mk-table tfoot td {
+    border-top: 2px solid #1f2937;
+    font-weight: 800;
+    padding-top: 1rem;
+    font-size: 1rem;
+    background-color: #f9fafb;
+}
+
+/* Footer Summary */
+.mk-footer {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 3rem;
+    padding-top: 2rem;
+    border-top: 1px dashed #d1d5db;
+}
+
+/* Watermark */
+.mk-watermark {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%) rotate(-45deg);
+    font-size: 8rem;
+    font-weight: 900;
+    color: rgba(0,0,0,0.03);
+    pointer-events: none;
+    z-index: 0;
+    white-space: nowrap;
+}
+
+/* Grade Badges */
+.grade-badge {
+    display: inline-block;
+    padding: 0.2rem 0.6rem;
+    border-radius: 6px;
+    font-weight: 700;
+    font-size: 0.8rem;
+    min-width: 30px;
+}
+.grade-A { background: #dcfce7; color: #166534; } /* Green */
+.grade-B { background: #dbeafe; color: #1e40af; } /* Blue */
+.grade-C { background: #fef9c3; color: #854d0e; } /* Yellow */
+.grade-D { background: #ffedd5; color: #9a3412; } /* Orange */
+.grade-F { background: #fee2e2; color: #991b1b; } /* Red */
+
+/* --- 9. Toast Notifications --- */
+.toast-enter {
+    animation: slideInRight 0.4s cubic-bezier(0.21, 1.02, 0.73, 1) forwards;
+}
+
+@keyframes slideInRight {
+    from { transform: translateX(100%); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+}
+
+/* --- 10. Print Optimization --- */
+@media print {
+    @page { size: A4; margin: 0; }
+    
+    body { background: white; }
+    
+    /* Hide Interface */
+    .no-print, 
+    #view-admin, 
+    #view-student, 
+    #view-auth, 
+    #view-landing, 
+    #modal-overlay, 
+    aside, 
+    button, 
+    #toast-container { 
+        display: none !important; 
+    }
+
+    /* Show Marksheet */
+    #view-marksheet { 
+        display: block !important; 
+        position: fixed; 
+        top: 0; 
+        left: 0; 
+        width: 100%; 
+        height: 100%; 
+        margin: 0; 
+        padding: 0 !important; 
+        background: white !important; 
+        overflow: visible;
+        z-index: 9999;
+    }
+
+    /* Ensure Auto Height for Printing & Viewing */
+    #mk-printable {
+    height: auto;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+    
+    /* Force Background Colors */
+    * { 
+        -webkit-print-color-adjust: exact !important; 
+        print-color-adjust: exact !important; 
+    }
+}

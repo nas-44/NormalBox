@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Normal Box - The Future of Result Management</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600&family=Space+Grotesk:wght@700&display=swap" rel="stylesheet">
+    
+    <link rel="stylesheet" href="home.css">
+</head>
+<body class="font-inter text-gray-800 overflow-x-hidden">
+
+    <div class="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
+        <div class="blob blob-3"></div>
+        <div class="grid-overlay"></div>
+    </div>
+
+    <nav class="w-full p-6 flex justify-between items-center fade-in-down">
+        <div class="text-2xl font-bold tracking-tighter flex items-center gap-2 text-blue-900">
+            <div class="w-10 h-10 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-lg shadow-blue-200">
+                <i class="fas fa-cube text-lg"></i>
+            </div>
+            Normal Box
+        </div>
+        <a href="index.html" class="btn-glass px-8 py-3 rounded-full text-sm font-bold hover:scale-105 transition transform flex items-center gap-2 group">
+            Login <i class="fas fa-arrow-right group-hover:translate-x-1 transition"></i>
+        </a>
+    </nav>
+
+    <main class="min-h-[80vh] flex flex-col items-center justify-center text-center px-4 relative">
+        
+        <div class="max-w-5xl mx-auto space-y-8 z-10">
+            <span class="inline-block py-1.5 px-4 rounded-full bg-blue-50 text-blue-600 text-xs font-bold tracking-wide uppercase mb-2 fade-in-up delay-100 border border-blue-100 shadow-sm">
+                v2.0 Now Live 🚀
+            </span>
+            
+            <h1 class="text-6xl md:text-9xl font-bold font-space text-slate-900 leading-tight fade-in-up delay-200 tracking-tight">
+                Results made <br>
+                <span class="text-transparent bg-clip-text bg-gradient-to-r from-blue-600 to-purple-600 typing-effect">Simple.</span>
+            </h1>
+            
+            <p class="text-lg md:text-2xl text-slate-500 max-w-2xl mx-auto fade-in-up delay-300 font-light leading-relaxed">
+                The ultimate academic performance tracking system for modern institutions. 
+                Manage classes, publish marks, and empower students in one secure portal.
+            </p>
+
+            <div class="flex flex-col md:flex-row gap-6 justify-center mt-10 fade-in-up delay-400">
+                <a href="index.html" class="btn-primary-glow px-10 py-5 rounded-full text-xl font-bold text-white shadow-2xl shadow-blue-500/30 hover:shadow-blue-500/50 transition transform hover:-translate-y-1 flex items-center justify-center gap-3">
+                    Launch Dashboard <i class="fas fa-rocket"></i>
+                </a>
+                <button class="px-10 py-5 rounded-full text-xl font-bold text-slate-600 border border-slate-200 bg-white/40 backdrop-blur-md hover:bg-white hover:border-slate-300 transition shadow-sm">
+                    Learn More
+                </button>
+            </div>
+        </div>
+
+        <div class="mt-24 relative w-full max-w-6xl mx-auto h-80 fade-in-up delay-500 hidden md:block pointer-events-none">
+            
+            <div class="floating-card absolute left-20 top-0 bg-white/90 backdrop-blur-xl p-6 rounded-3xl shadow-2xl border border-white/50 w-72 transform -rotate-6 z-10">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 text-xl"><i class="fas fa-university"></i></div>
+                    <div>
+                        <h4 class="font-bold text-gray-800">Institution</h4>
+                        <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">Admin Control</p>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <div class="h-2 bg-gray-100 rounded-full w-3/4"></div>
+                    <div class="h-2 bg-gray-100 rounded-full w-1/2"></div>
+                </div>
+            </div>
+
+            <div class="floating-card-center absolute left-1/2 top-[-40px] transform -translate-x-1/2 bg-white p-8 rounded-[2rem] shadow-2xl shadow-blue-900/10 border border-blue-50 w-96 z-20">
+                <div class="flex justify-between items-center mb-8">
+                    <div>
+                        <p class="text-xs text-gray-400 font-bold uppercase tracking-widest mb-1">Final Grade</p>
+                        <h3 class="font-space font-bold text-4xl text-gray-900">A+</h3>
+                    </div>
+                    <div class="w-14 h-14 rounded-full bg-green-50 text-green-500 flex items-center justify-center text-2xl"><i class="fas fa-check"></i></div>
+                </div>
+                <div class="space-y-4">
+                    <div>
+                        <div class="flex justify-between text-sm mb-1"><span class="font-medium text-gray-500">Mathematics</span><span class="font-bold text-gray-900">95%</span></div>
+                        <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden"><div class="bg-blue-600 h-2.5 rounded-full" style="width: 95%"></div></div>
+                    </div>
+                    <div>
+                        <div class="flex justify-between text-sm mb-1"><span class="font-medium text-gray-500">Science</span><span class="font-bold text-gray-900">88%</span></div>
+                        <div class="w-full bg-gray-100 rounded-full h-2.5 overflow-hidden"><div class="bg-purple-600 h-2.5 rounded-full" style="width: 88%"></div></div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="floating-card-right absolute right-20 top-8 bg-white/90 backdrop-blur-xl p-6 rounded-3xl shadow-2xl border border-white/50 w-72 transform rotate-6 z-10">
+                <div class="flex items-center gap-4 mb-4">
+                    <div class="w-12 h-12 rounded-2xl bg-purple-50 flex items-center justify-center text-purple-600 text-xl"><i class="fas fa-user-graduate"></i></div>
+                    <div>
+                        <h4 class="font-bold text-gray-800">Student</h4>
+                        <p class="text-xs text-gray-400 font-medium uppercase tracking-wider">View Profile</p>
+                    </div>
+                </div>
+                <div class="space-y-2">
+                    <div class="h-2 bg-gray-100 rounded-full w-full"></div>
+                    <div class="h-2 bg-gray-100 rounded-full w-2/3"></div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+
+    <footer class="py-8 text-center text-gray-400 text-sm relative z-10 border-t border-gray-200/50 bg-white/30 backdrop-blur-sm">
+        <div class="flex justify-center gap-6 mb-4 text-xl">
+            <a href="#" class="hover:text-blue-600 transition"><i class="fab fa-twitter"></i></a>
+            <a href="#" class="hover:text-blue-600 transition"><i class="fab fa-instagram"></i></a>
+            <a href="#" class="hover:text-blue-600 transition"><i class="fab fa-linkedin"></i></a>
+        </div>
+        <p>&copy; 2025 Normal Box Systems. Crafted for Education.</p>
+    </footer>
+
+</body>
+</html>
