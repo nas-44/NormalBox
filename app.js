@@ -1,4 +1,27 @@
 // --- GLOBAL CONFIGURATION ---
+const firebaseConfig = {
+    apiKey: "AIzaSyCeW2AWVvTa2LTwvoXH0fx4lmfWb-_83zE",
+    authDomain: "normalbox-f21b1.firebaseapp.com",
+    // 👇 THIS LINE WAS MISSING!
+    databaseURL: "https://normalbox-f21b1-default-rtdb.firebaseio.com",
+    projectId: "normalbox-f21b1",
+    storageBucket: "normalbox-f21b1.firebasestorage.app",
+    messagingSenderId: "1021299597254",
+    appId: "1:1021299597254:web:0eab183e11c963f1e9dcc7",
+    measurementId: "G-1WPYZ1WDND"
+};
+
+// INITIALIZE FIREBASE
+let dbCloud = null;
+try {
+    firebase.initializeApp(firebaseConfig);
+    dbCloud = firebase.database();
+    console.log("Firebase initialized successfully");
+} catch (e) {
+    console.error("Firebase Init Error:", e);
+    alert("Database Connection Failed. See Console.");
+}
+// --- GLOBAL CONFIGURATION ---
 const DB_KEY = 'normalbox_db_v1';
 const SESSION_KEY = 'normalbox_session_v1'; 
 const PROCESS_DELAY = 300; 
@@ -390,28 +413,54 @@ function showStudentTab(tabName) {
 
 // ... (Rest of the file remains unchanged)
 
-function handleInstRegister(e) { 
+async function handleInstRegister(e) { 
     e.preventDefault(); 
+    
+    const name = document.getElementById('reg-name').value;
+    const email = document.getElementById('reg-email').value;
+    const pass = document.getElementById('reg-pass').value;
+
+    if(!name || !email || !pass) return showToast("Please fill all fields", "error");
+
     setButtonLoading('btn-inst-reg', true); 
-    setTimeout(() => { 
-        const db = getDB(); 
-        const email = document.getElementById('reg-email').value; 
-        if (db.institutions.find(i => i.email === email)) { 
-            setButtonLoading('btn-inst-reg', false); return showToast('Email exists', 'error'); 
-        } 
-        db.institutions.push({ 
-            id: generateId(), 
-            name: document.getElementById('reg-name').value, 
-            email, 
-            pass: document.getElementById('reg-pass').value, 
-            isActive: true, 
-            authMethod: 'dob' // Default
-        }); 
-        saveDB(db); 
-        showToast('Registered!'); 
-        toggleRegister('inst'); 
-        setButtonLoading('btn-inst-reg', false); 
-    }, PROCESS_DELAY); 
+    
+    // Use async logic instead of setTimeout for better reliability
+    setTimeout(async () => { 
+        try {
+            const db = getDB(); 
+            
+            // 1. Check if email exists
+            if (db.institutions.find(i => i.email === email)) { 
+                setButtonLoading('btn-inst-reg', false); 
+                return showToast('Email already registered', 'error'); 
+            } 
+
+            // 2. Create new institution
+            const newInst = { 
+                id: generateId(), 
+                name: name, 
+                email: email, 
+                pass: pass, 
+                isActive: true, 
+                authMethod: 'dob' 
+            };
+            
+            db.institutions.push(newInst); 
+            
+            // 3. Save to Cloud (Wait for it to finish)
+            await saveDB(db); 
+            
+            showToast('Registration Successful!'); 
+            toggleRegister('inst'); 
+            
+        } catch (error) {
+            console.error(error);
+            showToast("Error saving to cloud: " + error.message, "error");
+        } finally {
+            // 4. Always stop loading, even if there is an error
+            setButtonLoading('btn-inst-reg', false); 
+        }
+    }, 100); 
 }
 
 function logout() { clearSession(); }
