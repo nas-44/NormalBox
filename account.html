@@ -51,12 +51,7 @@
                 <h2 class="text-3xl font-bold text-blue-600 mb-2">Institution Login</h2>
                 <form onsubmit="handleInstLogin(event)">
                     <div class="mb-4"><label class="block text-xs font-bold text-gray-500 uppercase mb-1">Email</label><input type="email" id="inst-email" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-200" required></div>
-                    <div class="mb-2"><label class="block text-xs font-bold text-gray-500 uppercase mb-1">Password</label><input type="password" id="inst-pass" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-200" required></div>
-                    
-                    <div class="text-right mb-6">
-                        <button type="button" onclick="toggleForgot('inst')" class="text-xs text-blue-600 hover:underline font-semibold">Forgot Password?</button>
-                    </div>
-
+                    <div class="mb-6"><label class="block text-xs font-bold text-gray-500 uppercase mb-1">Password</label><input type="password" id="inst-pass" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-200" required></div>
                     <button type="submit" id="btn-inst-login" class="w-full btn-master btn-primary py-3 rounded-lg text-lg shadow-lg">Login</button>
                     <p class="mt-6 text-center text-sm text-blue-600 cursor-pointer hover:underline" onclick="toggleRegister('inst')">Create New Account</p>
                 </form>
@@ -65,9 +60,17 @@
             <div id="login-form-student" class="hidden">
                 <h2 class="text-3xl font-bold text-purple-600 mb-2">Student Login</h2>
                 <form onsubmit="handleStudentLogin(event)">
-                    <div class="mb-4"><label class="block text-xs font-bold text-gray-500 uppercase mb-1">Select Institution</label><select id="student-inst-select" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-purple-200 bg-white"></select></div>
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Select Institution</label>
+                        <select id="student-inst-select" onchange="checkInstAuthMethod()" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-purple-200 bg-white"></select>
+                    </div>
                     <div class="mb-4"><label class="block text-xs font-bold text-gray-500 uppercase mb-1">Admission Number</label><input type="text" id="student-adm" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-purple-200" required></div>
-                    <div class="mb-6"><label class="block text-xs font-bold text-gray-500 uppercase mb-1">Date of Birth</label><input type="date" id="student-dob" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-purple-200" required></div>
+                    
+                    <div class="mb-6">
+                        <label id="lbl-student-cred" class="block text-xs font-bold text-gray-500 uppercase mb-1">Date of Birth</label>
+                        <input type="date" id="student-cred" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-purple-200" required>
+                    </div>
+
                     <button type="submit" id="btn-student-login" class="w-full btn-master bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded-lg text-lg shadow-lg transition">View Dashboard</button>
                 </form>
             </div>
@@ -82,37 +85,6 @@
                     <p class="mt-6 text-center text-sm text-gray-500 cursor-pointer hover:underline" onclick="toggleRegister('inst')">Back to Login</p>
                  </form>
             </div>
-
-            <div id="form-inst-forgot" class="hidden">
-                 <h2 class="text-2xl font-bold text-blue-600 mb-2">Reset Password</h2>
-                 <p class="text-sm text-gray-500 mb-6">Identity Verification</p>
-                 
-                 <form onsubmit="handleForgotRequest(event)" id="forgot-step-1">
-                    <div class="mb-6">
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Registered Email</label>
-                        <input type="email" id="forgot-email" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-200" placeholder="Enter your institution email" required>
-                    </div>
-                    <button type="submit" id="btn-forgot-req" class="w-full btn-master btn-primary py-3 rounded-lg text-lg shadow-lg">Send OTP Code</button>
-                 </form>
-
-                 <form onsubmit="handleResetPassword(event)" id="forgot-step-2" class="hidden mt-4">
-                    <div class="p-4 bg-blue-50 rounded-lg mb-4 border border-blue-100">
-                        <p class="text-xs text-blue-800 mb-1"><i class="fas fa-envelope"></i> Code sent to: <span id="display-recovery-email" class="font-bold">--</span></p>
-                    </div>
-                    <div class="mb-4">
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">OTP Code</label>
-                        <input type="text" id="forgot-otp" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-200 text-center tracking-widest font-mono text-lg" placeholder="0000" maxlength="4" required>
-                    </div>
-                    <div class="mb-6">
-                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">New Password</label>
-                        <input type="password" id="forgot-new-pass" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-200" placeholder="Minimum 6 chars" required>
-                    </div>
-                    <button type="submit" id="btn-reset-pass" class="w-full btn-master bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg text-lg shadow-lg transition">Reset Password</button>
-                 </form>
-
-                 <p class="mt-6 text-center text-sm text-gray-500 cursor-pointer hover:underline" onclick="toggleForgot('inst')">Back to Login</p>
-            </div>
-
         </div>
     </section>
 
@@ -143,31 +115,72 @@
         </main>
     </section>
 
-    <section id="view-student" class="hidden min-h-screen bg-gray-50 flex flex-col md:flex-row fade-in">
-        <aside class="w-full md:w-64 bg-white border-r border-gray-200 flex-shrink-0">
-            <div class="p-6 border-b border-gray-100 flex items-center gap-3">
-                <div class="w-12 h-12 rounded-full bg-purple-100 text-purple-600 flex items-center justify-center font-bold text-xl overflow-hidden border border-purple-200">
-                    <i class="fas fa-user"></i>
-                </div>
-                <div class="overflow-hidden">
-                    <h2 class="font-bold text-gray-800 truncate w-32" id="st-sidebar-name">Student</h2>
-                    <p class="text-xs text-gray-500 font-mono" id="st-sidebar-adm">---</p>
+    <section id="view-student" class="hidden min-h-screen bg-[#f3f4f6] flex flex-col md:flex-row fade-in font-inter">
+        
+        <aside class="w-full md:w-72 bg-white border-r border-gray-200 flex-shrink-0 flex flex-col h-full fixed md:relative z-20">
+            <div class="p-8 border-b border-gray-100">
+                <div class="flex items-center gap-4 mb-1">
+                    <div class="w-12 h-12 rounded-xl bg-purple-600 text-white flex items-center justify-center font-bold text-xl shadow-lg shadow-purple-200">
+                        <i class="fas fa-user-graduate"></i>
+                    </div>
+                    <div>
+                        <h2 class="font-bold text-gray-800 text-lg leading-tight">Student<br>Portal</h2>
+                    </div>
                 </div>
             </div>
-            <nav class="p-4 space-y-2">
-                <button onclick="showStudentTab('results')" id="st-nav-results" class="nav-item w-full text-left px-4 py-3 rounded-lg hover:bg-purple-50 hover:text-purple-600 transition flex items-center"><i class="fas fa-chart-bar w-6"></i> Results</button>
-                <button onclick="showStudentTab('certificates')" id="st-nav-certificates" class="nav-item w-full text-left px-4 py-3 rounded-lg hover:bg-purple-50 hover:text-purple-600 transition flex items-center"><i class="fas fa-certificate w-6"></i> Certificates</button>
-                
-                <button onclick="showStudentTab('profile')" id="st-nav-profile" class="nav-item w-full text-left px-4 py-3 rounded-lg hover:bg-purple-50 hover:text-purple-600 transition flex items-center"><i class="fas fa-id-card w-6"></i> Personal Info</button>
-                <button onclick="showStudentTab('security')" id="st-nav-security" class="nav-item w-full text-left px-4 py-3 rounded-lg hover:bg-purple-50 hover:text-purple-600 transition flex items-center"><i class="fas fa-lock w-6"></i> Security</button>
-            </nav>
-            <div class="p-4 border-t mt-auto"><button onclick="logout()" class="w-full text-left px-4 py-2 text-red-500 hover:bg-red-50 rounded-lg transition"><i class="fas fa-sign-out-alt w-6"></i> Logout</button></div>
+            
+            <div class="p-6">
+                <div class="bg-gray-50 rounded-2xl p-4 border border-gray-100 mb-6 flex items-center gap-3">
+                    <div class="w-10 h-10 rounded-full bg-gray-200 overflow-hidden flex-shrink-0">
+                         <div id="sidebar-avatar-container" class="w-full h-full flex items-center justify-center text-gray-400"><i class="fas fa-user"></i></div>
+                    </div>
+                    <div class="overflow-hidden">
+                        <h3 class="font-bold text-gray-800 text-sm truncate" id="st-sidebar-name">Student Name</h3>
+                        <p class="text-xs text-gray-500 font-mono truncate" id="st-sidebar-adm">ADM: ---</p>
+                    </div>
+                </div>
+
+                <nav class="space-y-1">
+                    <button onclick="showStudentTab('results')" id="st-nav-results" class="nav-item w-full text-left px-4 py-3.5 rounded-xl hover:bg-gray-50 text-gray-600 hover:text-purple-600 transition flex items-center gap-3 font-semibold group">
+                        <div class="w-6 text-center"><i class="fas fa-th-large group-hover:scale-110 transition"></i></div> Dashboard
+                    </button>
+                    
+                    <button onclick="showStudentTab('certificates')" id="st-nav-certificates" class="nav-item w-full text-left px-4 py-3.5 rounded-xl hover:bg-gray-50 text-gray-600 hover:text-purple-600 transition flex items-center gap-3 font-semibold group">
+                        <div class="w-6 text-center"><i class="fas fa-certificate group-hover:scale-110 transition"></i></div> Certificates
+                    </button>
+                    
+                    <button onclick="showStudentTab('profile')" id="st-nav-profile" class="nav-item w-full text-left px-4 py-3.5 rounded-xl hover:bg-gray-50 text-gray-600 hover:text-purple-600 transition flex items-center gap-3 font-semibold group">
+                        <div class="w-6 text-center"><i class="fas fa-user-circle group-hover:scale-110 transition"></i></div> My Profile
+                    </button>
+                    
+                    <button onclick="showStudentTab('security')" id="st-nav-security" class="nav-item w-full text-left px-4 py-3.5 rounded-xl hover:bg-gray-50 text-gray-600 hover:text-purple-600 transition flex items-center gap-3 font-semibold group">
+                        <div class="w-6 text-center"><i class="fas fa-shield-alt group-hover:scale-110 transition"></i></div> Security
+                    </button>
+                </nav>
+            </div>
+            
+            <div class="mt-auto p-6 border-t border-gray-100">
+                <button onclick="logout()" class="w-full text-left px-4 py-3 text-red-500 bg-red-50 rounded-xl hover:bg-red-500 hover:text-white transition flex items-center justify-center gap-2 font-bold shadow-sm">
+                    <i class="fas fa-sign-out-alt"></i> Sign Out
+                </button>
+            </div>
         </aside>
-        <main class="flex-1 p-6 overflow-y-auto">
-            <header class="flex justify-between items-center mb-8">
-                <div><h1 class="text-2xl font-bold text-gray-800" id="st-page-title">Dashboard</h1><p class="text-sm text-gray-500" id="st-institution-name">Institution</p></div>
+
+        <main class="flex-1 p-4 md:p-10 overflow-y-auto h-screen">
+            <header class="flex flex-col md:flex-row md:justify-between md:items-center mb-10 gap-4">
+                <div>
+                    <h1 class="text-3xl font-black text-gray-800 tracking-tight" id="st-page-title">Dashboard</h1>
+                    <p class="text-gray-500 font-medium flex items-center gap-2">
+                        <i class="fas fa-university text-gray-400"></i> <span id="st-institution-name">Institution Name</span>
+                    </p>
+                </div>
+                <div class="bg-white px-4 py-2 rounded-full shadow-sm border border-gray-100 text-sm font-bold text-gray-600 flex items-center gap-2">
+                    <span class="w-2 h-2 bg-green-500 rounded-full animate-pulse"></span> <span id="student-date-display">--/--/----</span>
+                </div>
             </header>
-            <div id="student-content-area"></div>
+            
+            <div id="student-content-area" class="pb-10">
+                </div>
         </main>
     </section>
 
