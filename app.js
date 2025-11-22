@@ -11,6 +11,10 @@ let currentResultId = null;
 let cropper = null;
 let currentProfileImageData = null; 
 
+// New globals for password recovery
+let currentRecoveryOtp = null;
+let currentRecoveryEmail = null;
+
 // --- UI HELPERS ---
 function setButtonLoading(btnId, isLoading) {
     const btn = document.getElementById(btnId);
@@ -200,27 +204,24 @@ function saveStudentProfile() {
     }, 500);
 }
 
-// ... Existing global variables ...
-let currentRecoveryOtp = null;
-let currentRecoveryEmail = null;
+// --- AUTH ---
+function handleInstLogin(e) { e.preventDefault(); setButtonLoading('btn-inst-login', true); const email = document.getElementById('inst-email').value; const pass = document.getElementById('inst-pass').value; setTimeout(() => { const user = getDB().institutions.find(i => i.email === email && i.pass === pass); if (user) { if (user.isActive === false) { setButtonLoading('btn-inst-login', false); return showToast('Deactivated', 'error'); } currentUser = user; saveSession(user, 'inst'); document.getElementById('view-login').classList.add('hidden'); document.getElementById('view-inst').classList.remove('hidden'); showInstTab('home'); } else { showToast('Invalid', 'error'); } setButtonLoading('btn-inst-login', false); }, PROCESS_DELAY); }
+function handleStudentLogin(e) { e.preventDefault(); setButtonLoading('btn-student-login', true); const instId = document.getElementById('student-inst-select').value; const adm = document.getElementById('student-adm').value; const dob = document.getElementById('student-dob').value; setTimeout(() => { if (!instId) { setButtonLoading('btn-student-login', false); return showToast('Select Inst', 'error'); } const db = getDB(); const user = db.students.find(s => s.institutionId === instId && s.admissionNo === adm && s.dob === dob); if (user) { const inst = db.institutions.find(i => i.id === instId); currentUser = { ...user, role: 'student', instName: inst.name }; saveSession(user, 'student'); document.getElementById('view-login').classList.add('hidden'); document.getElementById('view-student').classList.remove('hidden'); updateStudentSidebar(); showStudentTab('results'); } else { showToast('Not Found', 'error'); } setButtonLoading('btn-student-login', false); }, PROCESS_DELAY); }
+function handleInstRegister(e) { e.preventDefault(); setButtonLoading('btn-inst-reg', true); setTimeout(() => { const db = getDB(); const email = document.getElementById('reg-email').value; if (db.institutions.find(i => i.email === email)) { setButtonLoading('btn-inst-reg', false); return showToast('Email exists', 'error'); } db.institutions.push({ id: generateId(), name: document.getElementById('reg-name').value, email, pass: document.getElementById('reg-pass').value, isActive: true }); saveDB(db); showToast('Registered!'); toggleRegister('inst'); setButtonLoading('btn-inst-reg', false); }, PROCESS_DELAY); }
+function logout() { clearSession(); }
 
 // --- FORGOT PASSWORD FEATURE ---
-
 function toggleForgot(role) {
     if (role === 'inst') {
-        // Toggle visibility
         const loginForm = document.getElementById('login-form-inst');
         const forgotForm = document.getElementById('form-inst-forgot');
         
         if (loginForm.classList.contains('hidden')) {
-            // Showing Login, Hiding Forgot
             loginForm.classList.remove('hidden');
             forgotForm.classList.add('hidden');
         } else {
-            // Hiding Login, Showing Forgot
             loginForm.classList.add('hidden');
             forgotForm.classList.remove('hidden');
-            // Reset forms
             document.getElementById('forgot-step-1').reset();
             document.getElementById('forgot-step-2').reset();
             document.getElementById('forgot-step-1').classList.remove('hidden');
@@ -232,26 +233,17 @@ function toggleForgot(role) {
 function handleForgotRequest(e) {
     e.preventDefault();
     setButtonLoading('btn-forgot-req', true);
-    
     const email = document.getElementById('forgot-email').value;
-
     setTimeout(() => {
         const db = getDB();
         const user = db.institutions.find(i => i.email === email);
-
         if (user) {
-            // Generate 4-digit random OTP
             currentRecoveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
             currentRecoveryEmail = email;
-            
-            // Simulate Email Sending
             alert(`[SIMULATION MODE]\n\nYour Password Recovery OTP is: ${currentRecoveryOtp}\n\nPlease enter this code to reset your password.`);
-            
-            // Switch to Step 2
             document.getElementById('forgot-step-1').classList.add('hidden');
             document.getElementById('forgot-step-2').classList.remove('hidden');
             safeSetText('display-recovery-email', email);
-            
         } else {
             showToast('Email not found in our records.', 'error');
         }
@@ -262,23 +254,16 @@ function handleForgotRequest(e) {
 function handleResetPassword(e) {
     e.preventDefault();
     setButtonLoading('btn-reset-pass', true);
-
     const inputOtp = document.getElementById('forgot-otp').value;
     const newPass = document.getElementById('forgot-new-pass').value;
-
     setTimeout(() => {
         if (inputOtp === currentRecoveryOtp) {
-            // Update Password in DB
             const db = getDB();
             const idx = db.institutions.findIndex(i => i.email === currentRecoveryEmail);
-            
             if (idx > -1) {
                 db.institutions[idx].pass = newPass;
                 saveDB(db);
-                
                 showToast('Password Reset Successfully!', 'success');
-                
-                // Go back to Login
                 toggleForgot('inst');
             } else {
                 showToast('Error updating record.', 'error');
@@ -289,12 +274,6 @@ function handleResetPassword(e) {
         setButtonLoading('btn-reset-pass', false);
     }, PROCESS_DELAY);
 }
-
-// --- AUTH ---
-function handleInstLogin(e) { e.preventDefault(); setButtonLoading('btn-inst-login', true); const email = document.getElementById('inst-email').value; const pass = document.getElementById('inst-pass').value; setTimeout(() => { const user = getDB().institutions.find(i => i.email === email && i.pass === pass); if (user) { if (user.isActive === false) { setButtonLoading('btn-inst-login', false); return showToast('Deactivated', 'error'); } currentUser = user; saveSession(user, 'inst'); document.getElementById('view-login').classList.add('hidden'); document.getElementById('view-inst').classList.remove('hidden'); showInstTab('home'); } else { showToast('Invalid', 'error'); } setButtonLoading('btn-inst-login', false); }, PROCESS_DELAY); }
-function handleStudentLogin(e) { e.preventDefault(); setButtonLoading('btn-student-login', true); const instId = document.getElementById('student-inst-select').value; const adm = document.getElementById('student-adm').value; const dob = document.getElementById('student-dob').value; setTimeout(() => { if (!instId) { setButtonLoading('btn-student-login', false); return showToast('Select Inst', 'error'); } const db = getDB(); const user = db.students.find(s => s.institutionId === instId && s.admissionNo === adm && s.dob === dob); if (user) { const inst = db.institutions.find(i => i.id === instId); currentUser = { ...user, role: 'student', instName: inst.name }; saveSession(user, 'student'); document.getElementById('view-login').classList.add('hidden'); document.getElementById('view-student').classList.remove('hidden'); updateStudentSidebar(); showStudentTab('results'); } else { showToast('Not Found', 'error'); } setButtonLoading('btn-student-login', false); }, PROCESS_DELAY); }
-function handleInstRegister(e) { e.preventDefault(); setButtonLoading('btn-inst-reg', true); setTimeout(() => { const db = getDB(); const email = document.getElementById('reg-email').value; if (db.institutions.find(i => i.email === email)) { setButtonLoading('btn-inst-reg', false); return showToast('Email exists', 'error'); } db.institutions.push({ id: generateId(), name: document.getElementById('reg-name').value, email, pass: document.getElementById('reg-pass').value, isActive: true }); saveDB(db); showToast('Registered!'); toggleRegister('inst'); setButtonLoading('btn-inst-reg', false); }, PROCESS_DELAY); }
-function logout() { clearSession(); }
 
 // --- OWNER ---
 function handleOwnerLogin(e) { e.preventDefault(); setButtonLoading('btn-owner-login', true); setTimeout(() => { if (document.getElementById('owner-id').value === OWNER_CRED.id && document.getElementById('owner-pass').value === OWNER_CRED.pass) { saveSession({ id: 'owner' }, 'owner'); document.getElementById('view-owner-login').classList.add('hidden'); document.getElementById('view-owner-dash').classList.remove('hidden'); renderOwnerStats(); } else { showToast('Invalid', 'error'); } setButtonLoading('btn-owner-login', false); }, PROCESS_DELAY); }
@@ -357,6 +336,21 @@ function showStudentTab(tabName) {
             myResults.forEach(res => {
                 const exam = db.exams.find(e => e.id === res.examId) || { name: 'Unknown' };
                 html += `<div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center"><div><h4 class="font-bold text-lg text-gray-800">${exam.name}</h4></div><button onclick="viewMarksheet('${res.id}')" class="px-4 py-2 rounded-lg bg-blue-600 text-white font-bold text-sm hover:bg-blue-700 transition flex items-center gap-2 shadow-lg shadow-blue-200">Check Result <i class="fas fa-arrow-right"></i></button></div>`;
+            });
+            html += `</div>`;
+        }
+        content.innerHTML = html;
+    } else if (tabName === 'certificates') {
+        if(title) title.innerText = 'My Certificates';
+        const myResults = db.results.filter(r => r.studentId === currentUser.id && r.status === 'PASS');
+        let html = `<h3 class="font-bold text-gray-800 mb-4 text-lg">Earned Certificates</h3>`;
+        if (myResults.length === 0) {
+            html += `<div class="bg-white p-12 rounded-xl shadow-sm border border-gray-100 text-center text-gray-500"><i class="fas fa-certificate text-4xl mb-3 text-gray-300"></i><p>No certificates earned yet.</p></div>`; 
+        } else {
+            html += `<div class="grid gap-4 md:grid-cols-2 fade-in">`;
+            myResults.forEach(res => {
+                const exam = db.exams.find(e => e.id === res.examId) || { name: 'Unknown' };
+                html += `<div class="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex justify-between items-center group hover:border-yellow-200 transition"><div><h4 class="font-bold text-lg text-gray-800">${exam.name}</h4><p class="text-xs text-green-600 font-bold uppercase tracking-wide mt-1"><i class="fas fa-check-circle"></i> Passed</p></div><button onclick="viewCertificate('${res.id}')" class="px-4 py-2 rounded-lg bg-yellow-50 text-yellow-700 border border-yellow-200 font-bold text-sm hover:bg-yellow-500 hover:text-white transition flex items-center gap-2 shadow-sm"><i class="fas fa-award"></i> View</button></div>`;
             });
             html += `</div>`;
         }
@@ -468,14 +462,13 @@ function deleteItem(type, id) { if(!confirm('Delete?')) return; const db = getDB
 function deleteInstitutionAccount(instId = null) { if(!confirm('Delete Account?')) return; const db = getDB(); const targetId = instId || currentUser.id; db.results = db.results.filter(r => { const exam = db.exams.find(e => e.id === r.examId); return exam ? exam.institutionId !== targetId : true; }); db.exams = db.exams.filter(e => e.institutionId !== targetId); db.students = db.students.filter(s => s.institutionId !== targetId); db.teachers = db.teachers.filter(t => t.institutionId !== targetId); db.classes = db.classes.filter(c => c.institutionId !== targetId); db.institutions = db.institutions.filter(i => i.id !== targetId); saveDB(db); if(instId) { showToast('Deleted'); renderOwnerInstList(); } else { clearSession(); alert("Deleted"); } }
 function calculateGrade(percentage) { if (percentage >= 90) return { grade: 'A+', css: 'grade-A' }; if (percentage >= 80) return { grade: 'A', css: 'grade-A' }; if (percentage >= 70) return { grade: 'B', css: 'grade-B' }; if (percentage >= 60) return { grade: 'C', css: 'grade-C' }; if (percentage >= 50) return { grade: 'D', css: 'grade-D' }; return { grade: 'F', css: 'grade-F' }; }
 function viewMarksheet(resultId) {
-    currentResultId = resultId;
+    if (resultId) currentResultId = resultId;
     const db = getDB();
-    const res = db.results.find(r => r.id === resultId);
+    const res = db.results.find(r => r.id === currentResultId);
+    if(!res) return showToast("Result not found", "error");
+
     const exam = db.exams.find(e => e.id === res.examId);
-    
-    // Safety check: if class was deleted
     const cls = db.classes.find(c => c.id === currentUser.classId);
-    // NOTE: Even if class deleted, show historical result
     const className = cls ? cls.name : 'Unknown Class';
 
     const subjects = db.subjects.filter(s => s.classId === currentUser.classId);
@@ -488,7 +481,6 @@ function viewMarksheet(resultId) {
     safeSetText('mk-class', className);
     safeSetText('mk-exam', exam.name);
     
-    // Photo
     const photoBox = document.getElementById('mk-photo-container');
     if (photoBox) {
         photoBox.innerHTML = currentUser.profileImage 
@@ -496,7 +488,6 @@ function viewMarksheet(resultId) {
             : `<i class="fas fa-user text-gray-300 text-4xl"></i>`;
     }
 
-    // Attendance Logic
     let attText = "N/A";
     if (res.attendance !== undefined && res.attendance !== "") {
         const totalDays = cls ? cls.totalAttendance : 0;
@@ -516,13 +507,9 @@ function viewMarksheet(resultId) {
     let totalObtained = 0;
     let totalMax = 0;
 
-    // Use subjects from result history if class deleted/changed
-    // Fallback to current subjects
     const resultSubjects = Object.keys(res.subjectMarks).map(subId => {
         return db.subjects.find(s => s.id === subId) || { name: 'Deleted Subject', fullMarks: 100, passMarks: 35, id: subId };
     });
-    
-    // If current subjects match, use them (better for active classes)
     const displaySubjects = subjects.length > 0 ? subjects : resultSubjects;
 
     displaySubjects.forEach(sub => {
@@ -533,8 +520,6 @@ function viewMarksheet(resultId) {
         totalObtained += obtained;
         totalMax += full;
         
-        const status = obtained >= pass ? 'PASS' : 'FAIL';
-        const statusColor = obtained >= pass ? 'text-green-600' : 'text-red-600 font-bold';
         const gradeObj = calculateGrade((obtained/full)*100);
         
         tbody.innerHTML += `
@@ -548,11 +533,8 @@ function viewMarksheet(resultId) {
     });
 
     const percentage = totalMax > 0 ? ((totalObtained / totalMax) * 100).toFixed(2) : 0;
-    
-    // Update Grand Total in Footer
     safeSetText('mk-total-max', totalMax);
     safeSetText('mk-total-obt', totalObtained);
-
     safeSetText('mk-percentage', `${percentage}%`);
     safeSetText('mk-rank', getOrdinal(res.rank));
     
@@ -573,7 +555,8 @@ function closeMarksheet() { document.getElementById('view-marksheet').classList.
 function getOrdinal(n) { const s = ["th", "st", "nd", "rd"]; const v = n % 100; return n + (s[(v - 20) % 10] || s[v] || s[0]); }
 
 // --- CERTIFICATE LOGIC ---
-function viewCertificate() {
+function viewCertificate(resultId = null) {
+    if(resultId) currentResultId = resultId;
     const db = getDB();
     const res = db.results.find(r => r.id === currentResultId);
     if(!res) return;
