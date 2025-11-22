@@ -47,14 +47,54 @@
         <div class="max-w-md w-full">
             <button onclick="goBackToLanding()" class="mb-8 text-gray-500 hover:text-blue-600 flex items-center gap-2 font-medium transition"><i class="fas fa-arrow-left"></i> Back</button>
             
-            <div id="login-form-inst" class="hidden">
+           <div id="login-form-inst" class="hidden">
                 <h2 class="text-3xl font-bold text-blue-600 mb-2">Institution Login</h2>
                 <form onsubmit="handleInstLogin(event)">
-                    <div class="mb-4"><label class="block text-xs font-bold text-gray-500 uppercase mb-1">Email</label><input type="email" id="inst-email" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-200" required></div>
-                    <div class="mb-6"><label class="block text-xs font-bold text-gray-500 uppercase mb-1">Password</label><input type="password" id="inst-pass" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-200" required></div>
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Email</label>
+                        <input type="email" id="inst-email" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-200" required>
+                    </div>
+                    <div class="mb-2">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Password</label>
+                        <input type="password" id="inst-pass" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-200" required>
+                    </div>
+                    <div class="text-right mb-6">
+                        <button type="button" onclick="toggleForgot('inst')" class="text-xs text-blue-600 hover:underline font-semibold">Forgot Password?</button>
+                    </div>
+
                     <button type="submit" id="btn-inst-login" class="w-full btn-master btn-primary py-3 rounded-lg text-lg shadow-lg">Login</button>
                     <p class="mt-6 text-center text-sm text-blue-600 cursor-pointer hover:underline" onclick="toggleRegister('inst')">Create New Account</p>
                 </form>
+            </div>
+
+            <div id="form-inst-forgot" class="hidden">
+                 <h2 class="text-2xl font-bold text-blue-600 mb-2">Reset Password</h2>
+                 <p class="text-sm text-gray-500 mb-6">Identity Verification</p>
+                 
+                 <form onsubmit="handleForgotRequest(event)" id="forgot-step-1">
+                    <div class="mb-6">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">Registered Email</label>
+                        <input type="email" id="forgot-email" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-200" placeholder="Enter your institution email" required>
+                    </div>
+                    <button type="submit" id="btn-forgot-req" class="w-full btn-master btn-primary py-3 rounded-lg text-lg shadow-lg">Send OTP Code</button>
+                 </form>
+
+                 <form onsubmit="handleResetPassword(event)" id="forgot-step-2" class="hidden mt-4">
+                    <div class="p-4 bg-blue-50 rounded-lg mb-4 border border-blue-100">
+                        <p class="text-xs text-blue-800 mb-1"><i class="fas fa-envelope"></i> Code sent to: <span id="display-recovery-email" class="font-bold">--</span></p>
+                    </div>
+                    <div class="mb-4">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">OTP Code</label>
+                        <input type="text" id="forgot-otp" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-200 text-center tracking-widest font-mono text-lg" placeholder="0000" maxlength="4" required>
+                    </div>
+                    <div class="mb-6">
+                        <label class="block text-xs font-bold text-gray-500 uppercase mb-1">New Password</label>
+                        <input type="password" id="forgot-new-pass" class="w-full p-3 border rounded-lg outline-none focus:ring-2 focus:ring-blue-200" placeholder="Minimum 6 chars" required>
+                    </div>
+                    <button type="submit" id="btn-reset-pass" class="w-full btn-master bg-green-600 hover:bg-green-700 text-white font-bold py-3 rounded-lg text-lg shadow-lg transition">Reset Password</button>
+                 </form>
+
+                 <p class="mt-6 text-center text-sm text-gray-500 cursor-pointer hover:underline" onclick="toggleForgot('inst')">Back to Login</p>
             </div>
 
             <div id="login-form-student" class="hidden">

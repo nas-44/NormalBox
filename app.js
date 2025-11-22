@@ -200,6 +200,96 @@ function saveStudentProfile() {
     }, 500);
 }
 
+// ... Existing global variables ...
+let currentRecoveryOtp = null;
+let currentRecoveryEmail = null;
+
+// --- FORGOT PASSWORD FEATURE ---
+
+function toggleForgot(role) {
+    if (role === 'inst') {
+        // Toggle visibility
+        const loginForm = document.getElementById('login-form-inst');
+        const forgotForm = document.getElementById('form-inst-forgot');
+        
+        if (loginForm.classList.contains('hidden')) {
+            // Showing Login, Hiding Forgot
+            loginForm.classList.remove('hidden');
+            forgotForm.classList.add('hidden');
+        } else {
+            // Hiding Login, Showing Forgot
+            loginForm.classList.add('hidden');
+            forgotForm.classList.remove('hidden');
+            // Reset forms
+            document.getElementById('forgot-step-1').reset();
+            document.getElementById('forgot-step-2').reset();
+            document.getElementById('forgot-step-1').classList.remove('hidden');
+            document.getElementById('forgot-step-2').classList.add('hidden');
+        }
+    }
+}
+
+function handleForgotRequest(e) {
+    e.preventDefault();
+    setButtonLoading('btn-forgot-req', true);
+    
+    const email = document.getElementById('forgot-email').value;
+
+    setTimeout(() => {
+        const db = getDB();
+        const user = db.institutions.find(i => i.email === email);
+
+        if (user) {
+            // Generate 4-digit random OTP
+            currentRecoveryOtp = Math.floor(1000 + Math.random() * 9000).toString();
+            currentRecoveryEmail = email;
+            
+            // Simulate Email Sending
+            alert(`[SIMULATION MODE]\n\nYour Password Recovery OTP is: ${currentRecoveryOtp}\n\nPlease enter this code to reset your password.`);
+            
+            // Switch to Step 2
+            document.getElementById('forgot-step-1').classList.add('hidden');
+            document.getElementById('forgot-step-2').classList.remove('hidden');
+            safeSetText('display-recovery-email', email);
+            
+        } else {
+            showToast('Email not found in our records.', 'error');
+        }
+        setButtonLoading('btn-forgot-req', false);
+    }, PROCESS_DELAY);
+}
+
+function handleResetPassword(e) {
+    e.preventDefault();
+    setButtonLoading('btn-reset-pass', true);
+
+    const inputOtp = document.getElementById('forgot-otp').value;
+    const newPass = document.getElementById('forgot-new-pass').value;
+
+    setTimeout(() => {
+        if (inputOtp === currentRecoveryOtp) {
+            // Update Password in DB
+            const db = getDB();
+            const idx = db.institutions.findIndex(i => i.email === currentRecoveryEmail);
+            
+            if (idx > -1) {
+                db.institutions[idx].pass = newPass;
+                saveDB(db);
+                
+                showToast('Password Reset Successfully!', 'success');
+                
+                // Go back to Login
+                toggleForgot('inst');
+            } else {
+                showToast('Error updating record.', 'error');
+            }
+        } else {
+            showToast('Invalid OTP Code', 'error');
+        }
+        setButtonLoading('btn-reset-pass', false);
+    }, PROCESS_DELAY);
+}
+
 // --- AUTH ---
 function handleInstLogin(e) { e.preventDefault(); setButtonLoading('btn-inst-login', true); const email = document.getElementById('inst-email').value; const pass = document.getElementById('inst-pass').value; setTimeout(() => { const user = getDB().institutions.find(i => i.email === email && i.pass === pass); if (user) { if (user.isActive === false) { setButtonLoading('btn-inst-login', false); return showToast('Deactivated', 'error'); } currentUser = user; saveSession(user, 'inst'); document.getElementById('view-login').classList.add('hidden'); document.getElementById('view-inst').classList.remove('hidden'); showInstTab('home'); } else { showToast('Invalid', 'error'); } setButtonLoading('btn-inst-login', false); }, PROCESS_DELAY); }
 function handleStudentLogin(e) { e.preventDefault(); setButtonLoading('btn-student-login', true); const instId = document.getElementById('student-inst-select').value; const adm = document.getElementById('student-adm').value; const dob = document.getElementById('student-dob').value; setTimeout(() => { if (!instId) { setButtonLoading('btn-student-login', false); return showToast('Select Inst', 'error'); } const db = getDB(); const user = db.students.find(s => s.institutionId === instId && s.admissionNo === adm && s.dob === dob); if (user) { const inst = db.institutions.find(i => i.id === instId); currentUser = { ...user, role: 'student', instName: inst.name }; saveSession(user, 'student'); document.getElementById('view-login').classList.add('hidden'); document.getElementById('view-student').classList.remove('hidden'); updateStudentSidebar(); showStudentTab('results'); } else { showToast('Not Found', 'error'); } setButtonLoading('btn-student-login', false); }, PROCESS_DELAY); }
