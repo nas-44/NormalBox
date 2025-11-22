@@ -293,6 +293,8 @@ function handleStudentLogin(e) {
     }, PROCESS_DELAY); 
 }
 
+// ... (Previous code remains unchanged)
+
 // --- STUDENT DASHBOARD ENHANCED ---
 function showStudentTab(tabName) {
     const content = document.getElementById('student-content-area');
@@ -304,33 +306,14 @@ function showStudentTab(tabName) {
         if(title) title.innerText = 'Dashboard Overview';
         
         const myResults = db.results.filter(r => r.studentId === currentUser.id);
-        
-        // Calculate Stats
         const totalExams = myResults.length;
-        const passedExams = myResults.filter(r => r.status === 'PASS').length;
-        const avgScore = totalExams > 0 
-            ? (myResults.reduce((acc, curr) => {
-                // Calculate percentage for this result to average it
-                const examSubjects = db.subjects.filter(s => Object.keys(curr.subjectMarks).includes(s.id));
-                const max = examSubjects.reduce((sum, sub) => sum + sub.fullMarks, 0) || 100; // avoid div by 0
-                return acc + ((curr.total / max) * 100);
-              }, 0) / totalExams).toFixed(1) 
-            : 0;
 
-        // Stats Header HTML
+        // UPDATED: Removed Passed Count and Avg Percentage Cards
         let html = `
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8 fade-in">
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
+            <div class="mb-8 fade-in">
+                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4 max-w-sm">
                     <div class="w-12 h-12 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center text-xl"><i class="fas fa-book-open"></i></div>
                     <div><p class="text-xs text-gray-400 font-bold uppercase tracking-wider">Exams Taken</p><p class="text-2xl font-black text-gray-800">${totalExams}</p></div>
-                </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-full bg-green-50 text-green-600 flex items-center justify-center text-xl"><i class="fas fa-check-circle"></i></div>
-                    <div><p class="text-xs text-gray-400 font-bold uppercase tracking-wider">Passed</p><p class="text-2xl font-black text-gray-800">${passedExams}</p></div>
-                </div>
-                <div class="bg-white p-6 rounded-2xl shadow-sm border border-gray-100 flex items-center gap-4">
-                    <div class="w-12 h-12 rounded-full bg-purple-50 text-purple-600 flex items-center justify-center text-xl"><i class="fas fa-chart-pie"></i></div>
-                    <div><p class="text-xs text-gray-400 font-bold uppercase tracking-wider">Avg. Percentage</p><p class="text-2xl font-black text-gray-800">${avgScore}%</p></div>
                 </div>
             </div>
             
@@ -347,40 +330,23 @@ function showStudentTab(tabName) {
         } else {
             html += `<div class="grid gap-5 md:grid-cols-2 lg:grid-cols-2 fade-in">`;
             
-            // Sort by newest first (assuming higher ID is newer, or just reverse)
             myResults.reverse().forEach(res => {
                 const exam = db.exams.find(e => e.id === res.examId) || { name: 'Unknown Exam' };
-                
-                // Dynamic Grade & Color
-                // We need total Max marks to calc percentage correctly for display
-                // Fallback: Estimate max based on subject count * 100 if subject data missing
-                const subjects = db.subjects.filter(s => s.classId === currentUser.classId); // Assuming current class subjects
-                let totalMax = subjects.reduce((sum, s) => sum + s.fullMarks, 0);
-                if(totalMax === 0) totalMax = 100; // Fallback
-                
-                const percentage = ((res.total / totalMax) * 100).toFixed(1);
-                const grade = calculateGrade(percentage);
                 const isPass = res.status === 'PASS';
 
+                // UPDATED: Removed Status Badge and Score/Percentage Text
                 html += `
                 <div class="bg-white rounded-2xl p-0 shadow-sm border border-gray-100 hover:shadow-md transition group overflow-hidden relative">
                     <div class="absolute top-0 left-0 w-1.5 h-full ${isPass ? 'bg-green-500' : 'bg-red-500'}"></div>
                     <div class="p-6">
-                        <div class="flex justify-between items-start mb-4">
+                        <div class="flex justify-between items-start mb-2">
                             <div>
                                 <h4 class="font-bold text-lg text-gray-800 group-hover:text-blue-600 transition">${exam.name}</h4>
                                 <p class="text-xs text-gray-400 font-medium mt-1">ID: ${res.id.substr(0,8)}</p>
                             </div>
-                            <span class="${isPass ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'} px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
-                                ${isPass ? 'Passed' : 'Failed'}
-                            </span>
                         </div>
                         
-                        <div class="flex items-end justify-between mt-4 pt-4 border-t border-gray-50">
-                            <div>
-                                <p class="text-xs text-gray-400 uppercase font-bold">Score</p>
-                                <p class="text-xl font-black text-gray-800">${percentage}% <span class="text-sm font-normal text-gray-500">(${grade.grade})</span></p>
-                            </div>
+                        <div class="flex items-center justify-end mt-4 pt-4 border-t border-gray-50">
                             <button onclick="viewMarksheet('${res.id}')" class="px-5 py-2.5 rounded-xl bg-gray-900 text-white font-bold text-sm hover:bg-blue-600 transition shadow-lg shadow-gray-200 flex items-center gap-2">
                                 Marksheet <i class="fas fa-arrow-right"></i>
                             </button>
@@ -393,78 +359,36 @@ function showStudentTab(tabName) {
         content.innerHTML = html;
 
     } else if (tabName === 'certificates') {
+        // ... (Keep existing Certificates logic)
         if(title) title.innerText = 'My Certificates';
-        
         const myResults = db.results.filter(r => r.studentId === currentUser.id && r.status === 'PASS');
-        
-        let html = `<div class="bg-blue-600 text-white p-6 rounded-2xl shadow-lg mb-8 bg-gradient-to-r from-blue-600 to-indigo-600 relative overflow-hidden">
-            <div class="absolute right-0 top-0 opacity-10 transform translate-x-10 -translate-y-10"><i class="fas fa-certificate text-9xl"></i></div>
-            <h3 class="font-bold text-2xl mb-1 relative z-10">Achievements</h3>
-            <p class="text-blue-100 text-sm relative z-10">Official certificates for passed examinations.</p>
-        </div>`;
-        
+        let html = `<div class="bg-blue-600 text-white p-6 rounded-2xl shadow-lg mb-8 bg-gradient-to-r from-blue-600 to-indigo-600 relative overflow-hidden"><div class="absolute right-0 top-0 opacity-10 transform translate-x-10 -translate-y-10"><i class="fas fa-certificate text-9xl"></i></div><h3 class="font-bold text-2xl mb-1 relative z-10">Achievements</h3><p class="text-blue-100 text-sm relative z-10">Official certificates for passed examinations.</p></div>`;
         if (myResults.length === 0) {
-            html += `<div class="bg-white p-12 rounded-2xl shadow-sm border border-gray-100 text-center text-gray-500">
-                <i class="fas fa-award text-4xl mb-3 text-gray-300"></i>
-                <p>No certificates earned yet.</p>
-            </div>`; 
+            html += `<div class="bg-white p-12 rounded-2xl shadow-sm border border-gray-100 text-center text-gray-500"><i class="fas fa-award text-4xl mb-3 text-gray-300"></i><p>No certificates earned yet.</p></div>`; 
         } else {
             html += `<div class="grid gap-4 md:grid-cols-2 fade-in">`;
             myResults.forEach(res => {
                 const exam = db.exams.find(e => e.id === res.examId) || { name: 'Unknown' };
-                html += `
-                <div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 group hover:border-yellow-400 transition cursor-pointer" onclick="viewCertificate('${res.id}')">
-                    <div class="w-16 h-16 bg-yellow-50 text-yellow-600 rounded-lg flex items-center justify-center text-2xl border border-yellow-100 shadow-inner group-hover:scale-110 transition">
-                        <i class="fas fa-trophy"></i>
-                    </div>
-                    <div class="flex-1">
-                        <h4 class="font-bold text-gray-800 group-hover:text-yellow-700 transition">${exam.name}</h4>
-                        <p class="text-xs text-gray-400 mt-1">Tap to view certificate</p>
-                    </div>
-                    <button class="w-10 h-10 rounded-full bg-gray-50 text-gray-400 hover:bg-yellow-500 hover:text-white transition flex items-center justify-center">
-                        <i class="fas fa-chevron-right"></i>
-                    </button>
-                </div>`;
+                html += `<div class="bg-white p-5 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4 group hover:border-yellow-400 transition cursor-pointer" onclick="viewCertificate('${res.id}')"><div class="w-16 h-16 bg-yellow-50 text-yellow-600 rounded-lg flex items-center justify-center text-2xl border border-yellow-100 shadow-inner group-hover:scale-110 transition"><i class="fas fa-trophy"></i></div><div class="flex-1"><h4 class="font-bold text-gray-800 group-hover:text-yellow-700 transition">${exam.name}</h4><p class="text-xs text-gray-400 mt-1">Tap to view certificate</p></div><button class="w-10 h-10 rounded-full bg-gray-50 text-gray-400 hover:bg-yellow-500 hover:text-white transition flex items-center justify-center"><i class="fas fa-chevron-right"></i></button></div>`;
             });
             html += `</div>`;
         }
         content.innerHTML = html;
 
     } else if (tabName === 'profile') {
+        // ... (Keep existing Profile logic)
         if(title) title.innerText = 'My Profile';
         const s = db.students.find(stu => stu.id === currentUser.id); 
-        const photoHTML = s.profileImage 
-            ? `<img src="${s.profileImage}" class="w-full h-full object-cover rounded-xl" id="pf-img-preview">` 
-            : `<div class="w-full h-full bg-gray-50 flex items-center justify-center text-gray-300 rounded-xl" id="pf-img-preview"><i class="fas fa-user text-3xl"></i></div>`;
-
-        content.innerHTML = `
-            <div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden fade-in">
-                <div class="h-32 bg-gradient-to-r from-purple-600 to-blue-600"></div>
-                <div class="px-8 pb-8">
-                    <div class="relative flex justify-between items-end -mt-12 mb-8">
-                        <div class="w-24 h-24 bg-white p-1 rounded-2xl shadow-lg cursor-pointer" onclick="document.getElementById('pf-img-file').click()">
-                            ${photoHTML}
-                            <div class="absolute bottom-0 right-0 bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center border-2 border-white text-xs hover:bg-blue-700 transition"><i class="fas fa-camera"></i></div>
-                        </div>
-                        <input type="file" id="pf-img-file" accept="image/*" class="hidden" onchange="handleProfileImageSelect(this)">
-                        <button onclick="saveStudentProfile()" id="btn-save-profile" class="bg-blue-600 text-white px-6 py-2.5 rounded-xl hover:bg-blue-700 font-bold shadow-lg shadow-blue-200 transition">Save Changes</button>
-                    </div>
-                    
-                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <div class="col-span-1 md:col-span-2"><h4 class="font-bold text-gray-800 border-b pb-2 mb-2">Personal Details</h4></div>
-                        <div><label class="block text-xs font-bold text-gray-400 uppercase mb-1">Father's Name</label><input id="pf-father" value="${s.fatherName||''}" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition"></div>
-                        <div><label class="block text-xs font-bold text-gray-400 uppercase mb-1">Mother's Name</label><input id="pf-mother" value="${s.motherName||''}" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition"></div>
-                        <div><label class="block text-xs font-bold text-gray-400 uppercase mb-1">Mobile</label><input id="pf-mobile" value="${s.mobile||''}" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition"></div>
-                        <div><label class="block text-xs font-bold text-gray-400 uppercase mb-1">ID Marks</label><input id="pf-idmark" value="${s.idMark||''}" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition"></div>
-                        <div class="col-span-1 md:col-span-2"><label class="block text-xs font-bold text-gray-400 uppercase mb-1">Address</label><textarea id="pf-address" rows="3" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition">${s.address||''}</textarea></div>
-                    </div>
-                </div>
-            </div>`;
+        const photoHTML = s.profileImage ? `<img src="${s.profileImage}" class="w-full h-full object-cover rounded-xl" id="pf-img-preview">` : `<div class="w-full h-full bg-gray-50 flex items-center justify-center text-gray-300 rounded-xl" id="pf-img-preview"><i class="fas fa-user text-3xl"></i></div>`;
+        content.innerHTML = `<div class="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden fade-in"><div class="h-32 bg-gradient-to-r from-purple-600 to-blue-600"></div><div class="px-8 pb-8"><div class="relative flex justify-between items-end -mt-12 mb-8"><div class="w-24 h-24 bg-white p-1 rounded-2xl shadow-lg cursor-pointer" onclick="document.getElementById('pf-img-file').click()">${photoHTML}<div class="absolute bottom-0 right-0 bg-blue-600 text-white w-8 h-8 rounded-full flex items-center justify-center border-2 border-white text-xs hover:bg-blue-700 transition"><i class="fas fa-camera"></i></div></div><input type="file" id="pf-img-file" accept="image/*" class="hidden" onchange="handleProfileImageSelect(this)"><button onclick="saveStudentProfile()" id="btn-save-profile" class="bg-blue-600 text-white px-6 py-2.5 rounded-xl hover:bg-blue-700 font-bold shadow-lg shadow-blue-200 transition">Save Changes</button></div><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div class="col-span-1 md:col-span-2"><h4 class="font-bold text-gray-800 border-b pb-2 mb-2">Personal Details</h4></div><div><label class="block text-xs font-bold text-gray-400 uppercase mb-1">Father's Name</label><input id="pf-father" value="${s.fatherName||''}" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition"></div><div><label class="block text-xs font-bold text-gray-400 uppercase mb-1">Mother's Name</label><input id="pf-mother" value="${s.motherName||''}" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition"></div><div><label class="block text-xs font-bold text-gray-400 uppercase mb-1">Mobile</label><input id="pf-mobile" value="${s.mobile||''}" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition"></div><div><label class="block text-xs font-bold text-gray-400 uppercase mb-1">ID Marks</label><input id="pf-idmark" value="${s.idMark||''}" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition"></div><div class="col-span-1 md:col-span-2"><label class="block text-xs font-bold text-gray-400 uppercase mb-1">Address</label><textarea id="pf-address" rows="3" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-blue-100 outline-none transition">${s.address||''}</textarea></div></div></div></div>`;
     } else if (tabName === 'security') {
+        // ... (Keep existing Security logic)
         if(title) title.innerText = 'Security Settings';
         content.innerHTML = `<div class="bg-white p-8 rounded-2xl shadow-sm border border-gray-100 max-w-xl fade-in"><h4 class="font-bold text-gray-800 border-b pb-4 mb-6">Login Credentials</h4><div class="mb-6"><label class="block text-xs font-bold text-gray-400 uppercase mb-1">Admission Number (Login ID)</label><input id="sec-adm" value="${currentUser.admissionNo}" disabled class="w-full p-3 bg-gray-100 border border-gray-200 rounded-xl text-gray-500 cursor-not-allowed"><p class="text-xs text-gray-400 mt-2"><i class="fas fa-info-circle"></i> Cannot be changed manually.</p></div><div class="mb-8"><label class="block text-xs font-bold text-gray-400 uppercase mb-1">Date of Birth (Password)</label><input id="sec-dob" type="date" value="${currentUser.dob}" class="w-full p-3 bg-gray-50 border border-gray-200 rounded-xl focus:bg-white focus:ring-2 focus:ring-purple-100 outline-none transition"></div><button onclick="saveStudentSecurity()" id="btn-save-sec" class="w-full bg-red-50 text-red-600 border border-red-100 hover:bg-red-600 hover:text-white px-6 py-3 rounded-xl font-bold transition">Update Credentials</button></div>`;
     }
 }
+
+// ... (Rest of the file remains unchanged)
 
 function handleInstRegister(e) { 
     e.preventDefault(); 
