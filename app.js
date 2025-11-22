@@ -7,7 +7,9 @@ const OWNER_CRED = { id: 'owner', pass: 'admin123' };
 let currentUser = null; 
 let currentEditType = null; 
 let currentEditId = null;
-let currentResultId = null; // To track result for certificate
+let currentResultId = null; 
+let cropper = null;
+let currentProfileImageData = null; 
 
 // --- UI HELPERS ---
 function setButtonLoading(btnId, isLoading) {
@@ -41,6 +43,7 @@ function safeSetText(id, text) {
 
 function closeModal() { 
     const m1 = document.getElementById('modal-overlay'); if(m1) m1.classList.add('hidden');
+    const m2 = document.getElementById('modal-cropper'); if(m2) m2.classList.add('hidden');
 }
 
 // --- DATABASE & SESSION ---
@@ -52,7 +55,7 @@ function saveDB(data) {
     try {
         localStorage.setItem(DB_KEY, JSON.stringify(data)); 
     } catch (e) {
-        showToast("Storage Full! Images too large.", "error");
+        showToast("Storage Full! Image too large.", "error");
         console.error(e);
     }
 }
@@ -144,103 +147,61 @@ function updateStudentSidebar() {
     safeSetText('st-sidebar-name', s.name);
     safeSetText('st-sidebar-adm', `ADM: ${s.admissionNo}`);
     safeSetText('st-institution-name', currentUser.instName);
-    
     const av = document.querySelector('#view-student aside .w-12');
     if(av) av.innerHTML = s.profileImage ? `<img src="${s.profileImage}" class="w-full h-full rounded-full object-cover">` : `<i class="fas fa-user"></i>`;
 }
 
-// --- INST SETTINGS (Updated for 3 Images) ---
-function saveInstSettings() { 
-    const name = document.getElementById('set-name').value; 
-    const email = document.getElementById('set-email').value; 
-    const pass = document.getElementById('set-pass').value; 
-    
-    const logoInput = document.getElementById('set-img-file'); 
-    const sigInput = document.getElementById('set-sig-file');
-    const certInput = document.getElementById('set-cert-file');
-    
-    if(!name || !email || !pass) return showToast('Fields empty', 'error'); 
-    
-    setButtonLoading('btn-save-settings', true);
-
-    const db = getDB();
-    const idx = db.institutions.findIndex(i => i.id === currentUser.id);
-
-    if(idx > -1) {
-        db.institutions[idx].name = name;
-        db.institutions[idx].email = email;
-        db.institutions[idx].pass = pass;
-
-        // Helper to read file
-        const readFile = (file) => new Promise((resolve) => {
-            const reader = new FileReader();
-            reader.onload = (e) => resolve(e.target.result);
-            reader.readAsDataURL(file);
-        });
-
-        const promises = [];
-        // We only update if a new file is selected
-        if(logoInput.files[0]) promises.push(readFile(logoInput.files[0]).then(d => db.institutions[idx].profileImage = d));
-        if(sigInput.files[0]) promises.push(readFile(sigInput.files[0]).then(d => db.institutions[idx].signatureImage = d));
-        if(certInput.files[0]) promises.push(readFile(certInput.files[0]).then(d => db.institutions[idx].certTemplate = d));
-
-        Promise.all(promises).then(() => {
-            saveDB(db);
-            currentUser = db.institutions[idx];
-            saveSession(currentUser, 'inst');
-            showToast('Profile Saved');
-            showInstTab('profile'); // Refresh
-            setButtonLoading('btn-save-settings', false);
-        }).catch(err => {
-            console.error(err);
-            showToast("Error saving images", "error");
-            setButtonLoading('btn-save-settings', false);
-        });
+// --- CROPPER ---
+function handleProfileImageSelect(input) {
+    const file = input.files[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onload = function (e) {
+            const img = document.getElementById('cropper-img');
+            img.src = e.target.result;
+            document.getElementById('modal-cropper').classList.remove('hidden');
+            if (cropper) cropper.destroy();
+            cropper = new Cropper(img, { aspectRatio: 1, viewMode: 1, autoCropArea: 1 });
+        };
+        reader.readAsDataURL(file);
     }
+    input.value = "";
+}
+function cropAndSave() {
+    if (!cropper) return;
+    const canvas = cropper.getCroppedCanvas({ width: 300, height: 300 });
+    currentProfileImageData = canvas.toDataURL('image/jpeg', 0.7);
+    const preview = document.getElementById('pf-img-preview');
+    if(preview) preview.src = currentProfileImageData;
+    document.getElementById('modal-cropper').classList.add('hidden');
+    cropper.destroy(); cropper = null;
 }
 
-// --- STUDENT PROFILE SAVE ---
+// --- SAVE PROFILE ---
 function saveStudentProfile() {
     setButtonLoading('btn-save-profile', true);
-    const fileInput = document.getElementById('pf-img-file');
-    
-    const commitSave = (imgData) => {
-        setTimeout(() => {
-            const db = getDB();
-            const idx = db.students.findIndex(s => s.id === currentUser.id);
-            if(idx > -1) {
-                db.students[idx].fatherName = document.getElementById('pf-father').value;
-                db.students[idx].motherName = document.getElementById('pf-mother').value;
-                db.students[idx].mobile = document.getElementById('pf-mobile').value;
-                db.students[idx].idMark = document.getElementById('pf-idmark').value;
-                db.students[idx].address = document.getElementById('pf-address').value;
-                if(imgData) db.students[idx].profileImage = imgData;
-                
-                saveDB(db);
-                currentUser = db.students[idx]; 
-                updateStudentSidebar();
-                showToast('Profile Updated');
-            }
-            setButtonLoading('btn-save-profile', false);
-        }, 500);
-    };
-
-    if (fileInput && fileInput.files && fileInput.files[0]) {
-        const file = fileInput.files[0];
-        if (file.size > 500 * 1024) {
-            setButtonLoading('btn-save-profile', false);
-            return showToast('Image too large (>500KB)', 'error');
+    setTimeout(() => {
+        const db = getDB();
+        const idx = db.students.findIndex(s => s.id === currentUser.id);
+        if(idx > -1) {
+            db.students[idx].fatherName = document.getElementById('pf-father').value;
+            db.students[idx].motherName = document.getElementById('pf-mother').value;
+            db.students[idx].mobile = document.getElementById('pf-mobile').value;
+            db.students[idx].idMark = document.getElementById('pf-idmark').value;
+            db.students[idx].address = document.getElementById('pf-address').value;
+            if(currentProfileImageData) db.students[idx].profileImage = currentProfileImageData;
+            
+            saveDB(db);
+            currentUser = db.students[idx]; 
+            updateStudentSidebar();
+            showToast('Profile Updated');
         }
-        const reader = new FileReader();
-        reader.onload = (e) => commitSave(e.target.result);
-        reader.readAsDataURL(file);
-    } else {
-        commitSave(null);
-    }
+        setButtonLoading('btn-save-profile', false);
+    }, 500);
 }
 
-// --- AUTH HANDLERS ---
-function handleInstLogin(e) { e.preventDefault(); setButtonLoading('btn-inst-login', true); const email = document.getElementById('inst-email').value; const pass = document.getElementById('inst-pass').value; setTimeout(() => { const user = getDB().institutions.find(i => i.email === email && i.pass === pass); if (user) { if (user.isActive === false) { setButtonLoading('btn-inst-login', false); return showToast('Deactivated', 'error'); } currentUser = user; saveSession(user, 'inst'); document.getElementById('view-login').classList.add('hidden'); document.getElementById('view-inst').classList.remove('hidden'); showInstTab('home'); } else { showToast('Invalid Credentials', 'error'); } setButtonLoading('btn-inst-login', false); }, PROCESS_DELAY); }
+// --- AUTH ---
+function handleInstLogin(e) { e.preventDefault(); setButtonLoading('btn-inst-login', true); const email = document.getElementById('inst-email').value; const pass = document.getElementById('inst-pass').value; setTimeout(() => { const user = getDB().institutions.find(i => i.email === email && i.pass === pass); if (user) { if (user.isActive === false) { setButtonLoading('btn-inst-login', false); return showToast('Deactivated', 'error'); } currentUser = user; saveSession(user, 'inst'); document.getElementById('view-login').classList.add('hidden'); document.getElementById('view-inst').classList.remove('hidden'); showInstTab('home'); } else { showToast('Invalid', 'error'); } setButtonLoading('btn-inst-login', false); }, PROCESS_DELAY); }
 function handleStudentLogin(e) { e.preventDefault(); setButtonLoading('btn-student-login', true); const instId = document.getElementById('student-inst-select').value; const adm = document.getElementById('student-adm').value; const dob = document.getElementById('student-dob').value; setTimeout(() => { if (!instId) { setButtonLoading('btn-student-login', false); return showToast('Select Inst', 'error'); } const db = getDB(); const user = db.students.find(s => s.institutionId === instId && s.admissionNo === adm && s.dob === dob); if (user) { const inst = db.institutions.find(i => i.id === instId); currentUser = { ...user, role: 'student', instName: inst.name }; saveSession(user, 'student'); document.getElementById('view-login').classList.add('hidden'); document.getElementById('view-student').classList.remove('hidden'); updateStudentSidebar(); showStudentTab('results'); } else { showToast('Not Found', 'error'); } setButtonLoading('btn-student-login', false); }, PROCESS_DELAY); }
 function handleInstRegister(e) { e.preventDefault(); setButtonLoading('btn-inst-reg', true); setTimeout(() => { const db = getDB(); const email = document.getElementById('reg-email').value; if (db.institutions.find(i => i.email === email)) { setButtonLoading('btn-inst-reg', false); return showToast('Email exists', 'error'); } db.institutions.push({ id: generateId(), name: document.getElementById('reg-name').value, email, pass: document.getElementById('reg-pass').value, isActive: true }); saveDB(db); showToast('Registered!'); toggleRegister('inst'); setButtonLoading('btn-inst-reg', false); }, PROCESS_DELAY); }
 function logout() { clearSession(); }
@@ -284,25 +245,8 @@ function showInstTab(tabName) {
         const myClasses = db.classes.filter(c => c.institutionId === currentUser.id).map(c => `<option value="${c.id}">${c.name}</option>`).join('');
         content.innerHTML = `<div class="bg-white p-6 rounded-lg shadow mb-6 border-t-4 border-blue-500"><h3 class="font-bold mb-4">Select Context</h3><div class="flex gap-3 mb-4"><select id="pub-exam" class="border p-2 rounded flex-1 bg-gray-50 outline-none"><option value="">Select Exam</option>${myExams}</select><select id="pub-class" class="border p-2 rounded flex-1 bg-gray-50 outline-none"><option value="">Select Class</option>${myClasses}</select><button onclick="loadPublishTable()" class="bg-blue-600 text-white px-6 rounded hover:bg-blue-700 transition shadow">Load</button></div></div><div id="publish-table-container" class="overflow-x-auto"></div>`;
     } else if (tabName === 'profile') {
-         const inst = currentUser;
-         // Profile Image
-         const logo = inst.profileImage ? `<img src="${inst.profileImage}" class="w-20 h-20 rounded-full object-cover border mx-auto">` : `<div class="w-20 h-20 bg-gray-200 rounded-full mx-auto flex items-center justify-center text-2xl text-gray-400"><i class="fas fa-university"></i></div>`;
-         
-         content.innerHTML = `
-         <div class="bg-white p-8 rounded-xl shadow mb-6">
-            <h3 class="font-bold mb-6 text-lg">Institution Profile</h3>
-            ${logo}
-            <div class="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-                <div><label class="text-xs font-bold">Name</label><input id="set-name" value="${inst.name}" class="w-full p-3 border rounded"></div>
-                <div><label class="text-xs font-bold">Logo</label><input type="file" id="set-img-file" accept="image/*" class="w-full p-2 border rounded"></div>
-                <div><label class="text-xs font-bold">Email</label><input id="set-email" value="${inst.email}" class="w-full p-3 border rounded"></div>
-                <div><label class="text-xs font-bold">Password</label><input id="set-pass" type="text" value="${inst.pass}" class="w-full p-3 border rounded"></div>
-                <div><label class="text-xs font-bold">Principal Signature</label><input type="file" id="set-sig-file" accept="image/*" class="w-full p-2 border rounded"></div>
-                <div><label class="text-xs font-bold">Certificate Template</label><input type="file" id="set-cert-file" accept="image/*" class="w-full p-2 border rounded"></div>
-            </div>
-            <div class="mt-6 flex justify-between items-center"><button id="btn-save-settings" onclick="saveInstSettings()" class="btn-master btn-primary py-3 px-8 rounded-lg">Save Changes</button></div>
-            <div class="mt-12 border-t pt-6"><button onclick="deleteInstitutionAccount()" class="text-red-600 text-sm font-bold hover:underline">Delete Account</button></div>
-         </div>`;
+         const link = `${window.location.origin}${window.location.pathname}?id=${currentUser.id}`;
+         content.innerHTML = `<div class="bg-white p-8 rounded-xl shadow mb-6"><h3 class="font-bold mb-6 text-lg">Profile</h3><div class="grid grid-cols-1 md:grid-cols-2 gap-6"><div><label class="text-xs font-bold">Name</label><input id="set-name" value="${currentUser.name}" class="w-full p-3 border rounded"></div><div><label class="text-xs font-bold">Image</label><input type="file" id="set-img-file" accept="image/*" class="w-full p-2 border rounded" onchange="previewImage(this)"></div><div><label class="text-xs font-bold">Email</label><input id="set-email" value="${currentUser.email}" class="w-full p-3 border rounded"></div><div><label class="text-xs font-bold">Password</label><input id="set-pass" type="text" value="${currentUser.pass}" class="w-full p-3 border rounded"></div></div><div class="mt-6 flex justify-between items-center"><button id="btn-save-settings" onclick="saveInstSettings()" class="btn-master btn-primary py-3 px-8 rounded-lg">Save</button></div><div class="mt-12 border-t pt-6"><button onclick="deleteInstitutionAccount()" class="text-red-600 text-sm font-bold hover:underline">Delete Account</button></div></div><div class="bg-white p-6 rounded-lg shadow"><h3 class="font-bold mb-2">Student Link</h3><div class="bg-gray-50 p-4 rounded flex justify-between items-center border"><code class="text-sm text-blue-600">${link}</code><button onclick="navigator.clipboard.writeText('${link}');showToast('Copied!')" class="text-gray-600 font-bold ml-4">Copy</button></div></div>`;
     }
 }
 
@@ -330,7 +274,7 @@ function showStudentTab(tabName) {
     } else if (tabName === 'profile') {
         if(title) title.innerText = 'My Profile';
         const s = db.students.find(stu => stu.id === currentUser.id); 
-        const photoHTML = s.profileImage ? `<img src="${s.profileImage}" class="w-full h-full object-cover rounded">` : `<div class="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400"><i class="fas fa-user text-2xl"></i></div>`;
+        const photoHTML = s.profileImage ? `<img src="${s.profileImage}" class="w-full h-full object-cover rounded" id="pf-img-preview">` : `<div class="w-full h-full bg-gray-100 flex items-center justify-center text-gray-400" id="pf-img-preview"><i class="fas fa-user text-2xl"></i></div>`;
 
         content.innerHTML = `
             <div class="bg-white p-8 rounded-xl shadow-sm border border-gray-100 max-w-3xl fade-in">
@@ -338,8 +282,8 @@ function showStudentTab(tabName) {
                     <div>
                         <label class="block text-xs font-bold text-gray-400 uppercase mb-2">Profile Photo</label>
                         <div class="flex items-center gap-4">
-                            <div class="w-20 h-20 border rounded overflow-hidden">${photoHTML}</div>
-                            <div><input type="file" id="pf-img-file" accept="image/*" class="text-sm"></div>
+                            <div class="w-20 h-20 border rounded overflow-hidden cursor-pointer" onclick="document.getElementById('pf-img-file').click()">${photoHTML}</div>
+                            <div><input type="file" id="pf-img-file" accept="image/*" class="hidden" onchange="handleProfileImageSelect(this)"><button onclick="document.getElementById('pf-img-file').click()" class="text-sm text-blue-600 font-bold hover:underline">Change Photo</button></div>
                         </div>
                     </div>
                     <div><label class="block text-xs font-bold text-gray-400 uppercase mb-1">Father's Name</label><input id="pf-father" value="${s.fatherName||''}" class="w-full p-3 border rounded-lg"></div>
@@ -399,72 +343,137 @@ function downloadResults(format) {
 function downloadMarksTemplate(classId) { try { const db = getDB(); const cls = db.classes.find(c => c.id === classId); const students = db.students.filter(s => s.classId === classId); const subjects = db.subjects.filter(s => s.classId === classId); if (students.length === 0) return showToast("No students", "error"); const headers = ["Admission No", "Name", ...subjects.map(s => s.name), "Attendance"]; const data = students.map(s => { let row = { "Admission No": s.admissionNo, "Name": s.name }; subjects.forEach(sub => { row[sub.name] = ""; }); row["Attendance"] = ""; return row; }); const wb = XLSX.utils.book_new(); const ws = XLSX.utils.json_to_sheet(data, { header: headers }); XLSX.utils.book_append_sheet(wb, ws, "Marks"); XLSX.writeFile(wb, `Marks_Template_${cls.name}.xlsx`); } catch (e) { console.error(e); showToast("Export error", "error"); } }
 function processMarksUpload(input, classId) { try { const file = input.files[0]; if (!file) return; const reader = new FileReader(); reader.onload = function(e) { const data = new Uint8Array(e.target.result); const workbook = XLSX.read(data, {type: 'array'}); const rows = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]); const db = getDB(); const subjects = db.subjects.filter(s => s.classId === classId); let updatedCount = 0; rows.forEach(row => { const cleanRow = {}; Object.keys(row).forEach(k => cleanRow[k.trim()] = row[k]); const admNo = cleanRow["Admission No"]; const student = db.students.find(s => s.classId === classId && s.admissionNo == admNo); if (student) { updatedCount++; subjects.forEach(sub => { const val = cleanRow[sub.name]; if (val !== undefined) { const inputEl = document.querySelector(`input[data-student="${student.id}"][data-subject="${sub.id}"]`); if (inputEl) { inputEl.value = val; validateAndColor(inputEl, sub.passMarks); } } }); const attVal = cleanRow["Attendance"]; if (attVal !== undefined) { const attInput = document.querySelector(`input.input-att[data-student="${student.id}"]`); if (attInput) attInput.value = attVal; } calculateRowTotal(student.id); } }); showToast(`Populated ${updatedCount}`); input.value = ""; }; reader.readAsArrayBuffer(file); } catch (e) { console.error(e); showToast("Import error", "error"); } }
 
-// --- CERTIFICATE & RESULTS ---
+// --- ACTIONS ---
+function previewImage(input) { if (input.files && input.files[0]) { const reader = new FileReader(); reader.onload = function(e) { document.getElementById('settings-logo-preview').innerHTML = `<img src="${e.target.result}" class="w-full h-full object-cover">`; }; reader.readAsDataURL(input.files[0]); } }
+function saveInstSettings() { const name = document.getElementById('set-name').value; const email = document.getElementById('set-email').value; const pass = document.getElementById('set-pass').value; const fileInput = document.getElementById('set-img-file'); if(!name || !email || !pass) return showToast('Fields empty', 'error'); const commitSave = (imgData) => { setButtonLoading('btn-save-settings', true); setTimeout(() => { const db = getDB(); const idx = db.institutions.findIndex(i => i.id === currentUser.id); if(idx > -1) { db.institutions[idx].name = name; db.institutions[idx].email = email; db.institutions[idx].pass = pass; if (imgData) db.institutions[idx].profileImage = imgData; saveDB(db); currentUser = db.institutions[idx]; saveSession(currentUser, 'inst'); showToast('Saved'); showInstTab('settings'); } setButtonLoading('btn-save-settings', false); }, PROCESS_DELAY); }; if (fileInput.files && fileInput.files[0]) { const reader = new FileReader(); reader.onload = (e) => commitSave(e.target.result); reader.readAsDataURL(fileInput.files[0]); } else { commitSave(null); } }
+function addClass() { const name = document.getElementById('new-class-name').value; const att = document.getElementById('new-class-att').value; if(!name) return; const db = getDB(); db.classes.push({ id: generateId(), institutionId: currentUser.id, name, totalAttendance: att }); saveDB(db); showToast('Added'); showInstTab('classes'); }
+function manageSubjects(classId) { const db = getDB(); const cls = db.classes.find(c => c.id === classId); const subjects = db.subjects.filter(s => s.classId === classId); const lf = localStorage.getItem('last_full_marks')||''; const lp = localStorage.getItem('last_pass_marks')||''; let html = `<div class="p-4 bg-white rounded shadow"><h3 class="font-bold text-lg mb-4">Subjects for ${cls.name}</h3><div class="flex gap-2 mb-4"><input id="sub-name" placeholder="Name" class="border p-2 rounded flex-1 outline-none focus:ring-2 focus:ring-blue-200"><input id="sub-full" type="number" placeholder="Full" value="${lf}" class="border p-2 rounded w-24 outline-none focus:ring-2 focus:ring-blue-200"><input id="sub-pass" type="number" placeholder="Pass" value="${lp}" class="border p-2 rounded w-24 outline-none focus:ring-2 focus:ring-blue-200"><button onclick="addSubject('${classId}')" class="bg-green-600 text-white px-3 rounded">Add</button></div><ul class="divide-y">`; subjects.forEach(s => { html += `<li class="p-2 flex justify-between items-center"><span>${s.name} (${s.passMarks}/${s.fullMarks})</span><div><button onclick="openEditModal('subject', '${s.id}')" class="text-gray-400 hover:text-yellow-500 mr-2"><i class="fas fa-pen"></i></button><button onclick="deleteItem('subject', '${s.id}')" class="text-red-500"><i class="fas fa-trash"></i></button></div></li>`; }); document.getElementById('inst-content-area').innerHTML = html + `</ul><button onclick="showInstTab('classes')" class="mt-4 text-blue-600">Back</button></div>`; }
+function addSubject(classId) { const name = document.getElementById('sub-name').value; const full = document.getElementById('sub-full').value; const pass = document.getElementById('sub-pass').value; if(!name || !full) return; localStorage.setItem('last_full_marks', full); localStorage.setItem('last_pass_marks', pass); const db = getDB(); db.subjects.push({ id: generateId(), classId, name, fullMarks: parseInt(full), passMarks: parseInt(pass) }); saveDB(db); manageSubjects(classId); }
+function addStudent() { const name = document.getElementById('st-name').value; const adm = document.getElementById('st-adm').value; const dob = document.getElementById('st-dob').value; const classId = document.getElementById('st-class').value; const mobile = document.getElementById('st-mobile').value; if(!name || !adm || !dob) return showToast('Missing fields', 'error'); setButtonLoading('btn-add-st', true); setTimeout(() => { const db = getDB(); if (db.students.some(s => s.institutionId === currentUser.id && s.admissionNo === adm)) { setButtonLoading('btn-add-st', false); return showToast('Admission Exists', 'error'); } localStorage.setItem('last_selected_class_id', classId); db.students.push({ id: generateId(), institutionId: currentUser.id, classId, name, admissionNo: adm, dob, mobile }); saveDB(db); showToast('Added'); setButtonLoading('btn-add-st', false); showInstTab('students'); }, PROCESS_DELAY); }
+function addExam() { const name = document.getElementById('new-exam-name').value; if(!name) return; const db = getDB(); db.exams.push({ id: generateId(), institutionId: currentUser.id, name }); saveDB(db); showToast('Created'); showInstTab('exams'); }
+function loadPublishTable() { const examId = document.getElementById('pub-exam').value; const classId = document.getElementById('pub-class').value; if(!examId || !classId) return showToast('Select Exam', 'error'); const db = getDB(); const subjects = db.subjects.filter(s => s.classId === classId); if(subjects.length === 0) return showToast('No subjects', 'error'); const students = db.students.filter(s => s.classId === classId); const existingResults = db.results.filter(r => r.examId === examId); let html = `<div class="bg-white rounded shadow overflow-x-auto pb-16 border border-gray-200"><div class="flex justify-end gap-2 p-4 bg-gray-50 border-b border-gray-100"><button onclick="downloadMarksTemplate('${classId}')" class="bg-indigo-50 text-indigo-600 border border-indigo-200 px-3 py-1.5 rounded text-xs font-bold hover:bg-indigo-100 flex items-center gap-2"><i class="fas fa-download"></i> Template</button><label class="bg-green-50 text-green-600 border border-green-200 px-3 py-1.5 rounded text-xs font-bold hover:bg-green-100 cursor-pointer flex items-center gap-2"><i class="fas fa-upload"></i> Upload Filled Excel<input type="file" class="hidden" onchange="processMarksUpload(this, '${classId}')" accept=".xlsx, .xls, .csv"></label></div><table class="w-full text-sm whitespace-nowrap"><thead class="bg-blue-50 text-gray-700 table-sticky-header"><tr><th class="p-3 text-left border-r table-sticky-col">Student</th>${subjects.map(s => `<th class="p-3 text-center border-r w-24">${s.name}<br><span class="text-xs opacity-60">(${s.passMarks}/${s.fullMarks})</span></th>`).join('')}<th class="p-3 text-center w-24">Attendance</th><th class="p-3 text-center w-20">Total</th><th class="p-3 text-center w-20">Result</th></tr></thead><tbody>`; students.forEach(st => { const res = existingResults.find(r => r.studentId === st.id); const marks = res ? res.subjectMarks : {}; const att = res ? res.attendance : ''; const total = res ? res.total : 0; const status = res ? res.status : '-'; html += `<tr class="hover:bg-gray-50" id="row-${st.id}"><td class="p-3 border-b border-r font-medium table-sticky-col">${st.name}<br><span class="text-xs text-gray-500">${st.admissionNo}</span></td>${subjects.map(sub => { const val = marks[sub.id] || ''; const valNum = parseInt(val); let colorClass = (val !== '' && valNum < sub.passMarks) ? 'text-red-500 font-bold' : 'text-green-600 font-bold'; if(val === '') colorClass = ''; return `<td class="p-2 border-b border-r text-center"><input type="number" class="w-16 p-1 border rounded text-center outline-none focus:ring-2 transition input-mark ${colorClass}" data-student="${st.id}" data-subject="${sub.id}" data-max="${sub.fullMarks}" value="${val}" oninput="validateAndColor(this, ${sub.passMarks}); calculateRowTotal('${st.id}')"></td>`; }).join('')}<td class="p-2 border-b text-center"><input type="number" class="w-16 p-1 border rounded text-center outline-none input-att" data-student="${st.id}" value="${att}"></td><td class="p-3 text-center font-bold text-gray-800 border-b border-l bg-gray-50 row-total">${total}</td><td class="p-3 text-center font-bold text-xs border-b row-status ${status==='PASS'?'text-green-600':'text-red-600'}">${status}</td></tr>`; }); html += `</tbody></table></div><div class="fixed bottom-8 right-8 flex gap-2"><button onclick="downloadResults('pdf')" class="bg-red-500 text-white px-4 py-3 rounded-full shadow-xl hover:bg-red-600"><i class="fas fa-file-pdf"></i></button><button onclick="downloadResults('excel')" class="bg-green-600 text-white px-4 py-3 rounded-full shadow-xl hover:bg-green-700"><i class="fas fa-file-excel"></i></button><button id="btn-publish" onclick="saveResults('${examId}', '${classId}')" class="btn-master bg-blue-600 text-white px-8 py-3 rounded-full shadow-xl text-lg flex items-center gap-2 hover:bg-blue-700"><i class="fas fa-save"></i> Publish Results</button></div>`; document.getElementById('publish-table-container').innerHTML = html; }
+function validateAndColor(input, passMark) { const max = parseInt(input.getAttribute('data-max')); let val = parseInt(input.value); if (val > max) { input.value = max; val = max; showToast('Max exceeded', 'error'); } if (input.value !== '') { if (val >= passMark) { input.classList.remove('text-red-500'); input.classList.add('text-green-600', 'font-bold'); } else { input.classList.remove('text-green-600'); input.classList.add('text-red-500', 'font-bold'); } } }
+function calculateRowTotal(studentId) { const row = document.getElementById(`row-${studentId}`); const inputs = row.querySelectorAll('.input-mark'); let total = 0; let isFail = false; inputs.forEach(inp => { const val = inp.value ? parseInt(inp.value) : 0; const pass = parseInt(inp.getAttribute('oninput').match(/\d+/)[0]); total += val; if(val < pass) isFail = true; }); row.querySelector('.row-total').innerText = total; const statusEl = row.querySelector('.row-status'); statusEl.innerText = isFail ? 'FAIL' : 'PASS'; statusEl.className = `p-3 text-center font-bold text-xs border-b row-status ${isFail?'text-red-600':'text-green-600'}`; }
+function saveResults(examId, classId) { setButtonLoading('btn-publish', true, '<i class="fas fa-save mr-2"></i> Publish Results'); setTimeout(() => { const db = getDB(); const students = db.students.filter(s => s.classId === classId); const subjects = db.subjects.filter(s => s.classId === classId); let tempResults = []; students.forEach(st => { let totalMarks = 0; let isFail = false; let subjectMarks = {}; subjects.forEach(sub => { const input = document.querySelector(`input[data-student="${st.id}"][data-subject="${sub.id}"]`); const val = input.value ? parseInt(input.value) : 0; subjectMarks[sub.id] = val; totalMarks += val; if (val < sub.passMarks) isFail = true; }); const attInput = document.querySelector(`input.input-att[data-student="${st.id}"]`); const attendance = attInput.value ? parseInt(attInput.value) : 0; tempResults.push({ id: generateId(), examId, studentId: st.id, subjectMarks, attendance, total: totalMarks, status: isFail ? 'FAIL' : 'PASS' }); }); tempResults.sort((a, b) => b.total - a.total); tempResults.forEach((r, index) => { r.rank = index + 1; }); const studentIds = students.map(s => s.id); db.results = db.results.filter(r => !(r.examId === examId && studentIds.includes(r.studentId))); db.results.push(...tempResults); saveDB(db); showToast('Results Published Successfully!'); setButtonLoading('btn-publish', false, '<i class="fas fa-save mr-2"></i> Publish Results'); }, PROCESS_DELAY); }
+function openEditModal(type, id) { currentEditType = type; currentEditId = id; const db = getDB(); const container = document.getElementById('modal-inputs'); document.getElementById('modal-overlay').classList.remove('hidden'); container.innerHTML = ''; setTimeout(() => { const inp = container.querySelector('input'); if(inp) inp.focus(); }, 100); if (type === 'class') { const item = db.classes.find(c => c.id === id); container.innerHTML = `<div><label class="text-xs font-bold text-gray-500">Class Name</label><input id="edit-1" value="${item.name}" class="w-full p-3 border rounded mt-1"></div><div><label class="text-xs font-bold text-gray-500">Total Days</label><input id="edit-2" type="number" value="${item.totalAttendance}" class="w-full p-3 border rounded mt-1"></div>`; } else if (type === 'student') {
+        const item = db.students.find(s => s.id === id);
+        const imgHTML = item.profileImage ? `<img src="${item.profileImage}" class="w-20 h-20 rounded-full object-cover border mx-auto mb-4">` : `<div class="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center text-2xl text-gray-400 mx-auto mb-4 border"><i class="fas fa-user"></i></div>`;
+        container.innerHTML = `${imgHTML}<div class="grid grid-cols-2 gap-3"><div class="col-span-2"><label class="text-xs font-bold text-gray-500">Full Name</label><input id="edit-1" value="${item.name}" class="w-full p-2 border rounded"></div><div><label class="text-xs font-bold text-gray-500">Adm No</label><input id="edit-2" value="${item.admissionNo}" class="w-full p-2 border rounded"></div><div><label class="text-xs font-bold text-gray-500">DOB</label><input id="edit-3" type="date" value="${item.dob}" class="w-full p-2 border rounded"></div><div><label class="text-xs font-bold text-gray-500">Father's Name</label><input id="edit-father" value="${item.fatherName || ''}" class="w-full p-2 border rounded"></div><div><label class="text-xs font-bold text-gray-500">Mother's Name</label><input id="edit-mother" value="${item.motherName || ''}" class="w-full p-2 border rounded"></div><div><label class="text-xs font-bold text-gray-500">Mobile</label><input id="edit-4" value="${item.mobile || ''}" class="w-full p-2 border rounded"></div><div><label class="text-xs font-bold text-gray-500">ID Marks</label><input id="edit-idmark" value="${item.idMark || ''}" class="w-full p-2 border rounded"></div><div class="col-span-2"><label class="text-xs font-bold text-gray-500">Address</label><textarea id="edit-address" rows="2" class="w-full p-2 border rounded">${item.address || ''}</textarea></div></div>`;
+} else if (type === 'exam') { const item = db.exams.find(e => e.id === id); container.innerHTML = `<div><label class="text-xs font-bold text-gray-500">Name</label><input id="edit-1" value="${item.name}" class="w-full p-3 border rounded mt-1"></div>`; } else if (type === 'subject') { const item = db.subjects.find(s => s.id === id); container.innerHTML = `<div><label class="text-xs font-bold text-gray-500">Name</label><input id="edit-1" value="${item.name}" class="w-full p-3 border rounded mt-1"></div><div><label class="text-xs font-bold text-gray-500">Full Marks</label><input id="edit-2" type="number" value="${item.fullMarks}" class="w-full p-3 border rounded mt-1"></div><div><label class="text-xs font-bold text-gray-500">Pass Marks</label><input id="edit-3" type="number" value="${item.passMarks}" class="w-full p-3 border rounded mt-1"></div>`; } }
+function saveEdit() { const db = getDB(); setButtonLoading('btn-modal-save', true); setTimeout(() => { if (currentEditType === 'class') { const x = db.classes.find(c => c.id === currentEditId); x.name = document.getElementById('edit-1').value; x.totalAttendance = document.getElementById('edit-2').value; showInstTab('classes'); } else if (currentEditType === 'student') { 
+            const x = db.students.find(s => s.id === currentEditId);
+            const newAdm = document.getElementById('edit-2').value;
+            if (db.students.some(s => s.institutionId === currentUser.id && s.admissionNo === newAdm && s.id !== currentEditId)) { setButtonLoading('btn-modal-save', false); return showToast('Admission Exists', 'error'); }
+            x.name = document.getElementById('edit-1').value;
+            x.admissionNo = newAdm;
+            x.dob = document.getElementById('edit-3').value;
+            x.mobile = document.getElementById('edit-4').value;
+            x.fatherName = document.getElementById('edit-father').value;
+            x.motherName = document.getElementById('edit-mother').value;
+            x.idMark = document.getElementById('edit-idmark').value;
+            x.address = document.getElementById('edit-address').value;
+            showInstTab('students'); 
+        } else if (currentEditType === 'exam') { db.exams.find(e => e.id === currentEditId).name = document.getElementById('edit-1').value; showInstTab('exams'); } else if (currentEditType === 'subject') { const s = db.subjects.find(x => x.id === currentEditId); s.name = document.getElementById('edit-1').value; s.fullMarks = parseInt(document.getElementById('edit-2').value); s.passMarks = parseInt(document.getElementById('edit-3').value); saveDB(db); showToast('Subject Updated'); setButtonLoading('btn-modal-save', false); closeModal(); manageSubjects(s.classId); return; } saveDB(db); showToast('Saved'); setButtonLoading('btn-modal-save', false); closeModal(); }, PROCESS_DELAY); }
+function deleteItem(type, id) { if(!confirm('Delete?')) return; const db = getDB(); if (type === 'class') { db.classes = db.classes.filter(x => x.id !== id); db.subjects = db.subjects.filter(s => s.classId !== id); } else if (type === 'student') { db.students = db.students.filter(x => x.id !== id); db.results = db.results.filter(r => r.studentId !== id); } else if (type === 'exam') { db.exams = db.exams.filter(x => x.id !== id); } else if (type === 'subject') { const sub = db.subjects.find(s => s.id === id); db.subjects = db.subjects.filter(x => x.id !== id); if(sub) { saveDB(db); manageSubjects(sub.classId); return; } } saveDB(db); showToast('Deleted'); showInstTab(type === 'class' ? 'classes' : type + 's'); }
+function deleteInstitutionAccount(instId = null) { if(!confirm('Delete Account?')) return; const db = getDB(); const targetId = instId || currentUser.id; db.results = db.results.filter(r => { const exam = db.exams.find(e => e.id === r.examId); return exam ? exam.institutionId !== targetId : true; }); db.exams = db.exams.filter(e => e.institutionId !== targetId); db.students = db.students.filter(s => s.institutionId !== targetId); db.teachers = db.teachers.filter(t => t.institutionId !== targetId); db.classes = db.classes.filter(c => c.institutionId !== targetId); db.institutions = db.institutions.filter(i => i.id !== targetId); saveDB(db); if(instId) { showToast('Deleted'); renderOwnerInstList(); } else { clearSession(); alert("Deleted"); } }
 function calculateGrade(percentage) { if (percentage >= 90) return { grade: 'A+', css: 'grade-A' }; if (percentage >= 80) return { grade: 'A', css: 'grade-A' }; if (percentage >= 70) return { grade: 'B', css: 'grade-B' }; if (percentage >= 60) return { grade: 'C', css: 'grade-C' }; if (percentage >= 50) return { grade: 'D', css: 'grade-D' }; return { grade: 'F', css: 'grade-F' }; }
 function viewMarksheet(resultId) {
     currentResultId = resultId;
     const db = getDB();
     const res = db.results.find(r => r.id === resultId);
     const exam = db.exams.find(e => e.id === res.examId);
+    
+    // Safety check: if class was deleted
     const cls = db.classes.find(c => c.id === currentUser.classId);
+    // NOTE: Even if class deleted, show historical result
     const className = cls ? cls.name : 'Unknown Class';
+
     const subjects = db.subjects.filter(s => s.classId === currentUser.classId);
     const inst = db.institutions.find(i => i.id === currentUser.institutionId);
-    const student = db.students.find(s => s.id === currentUser.id);
 
     safeSetText('mk-inst-name', inst.name);
-    safeSetText('mk-name', student.name);
-    safeSetText('mk-adm', student.admissionNo);
-    safeSetText('mk-dob', student.dob);
+    safeSetText('mk-name', currentUser.name);
+    safeSetText('mk-adm', currentUser.admissionNo);
+    safeSetText('mk-dob', currentUser.dob);
     safeSetText('mk-class', className);
     safeSetText('mk-exam', exam.name);
     
+    // Photo
     const photoBox = document.getElementById('mk-photo-container');
     if (photoBox) {
-        photoBox.innerHTML = student.profileImage ? `<img src="${student.profileImage}" class="w-full h-full object-cover">` : `<i class="fas fa-user text-gray-300 text-4xl"></i>`;
+        photoBox.innerHTML = currentUser.profileImage 
+            ? `<img src="${currentUser.profileImage}" class="w-full h-full object-cover">`
+            : `<i class="fas fa-user text-gray-300 text-4xl"></i>`;
     }
 
-    // Attendance logic
+    // Attendance Logic
     let attText = "N/A";
-    const present = parseInt(res.attendance || 0);
-    if (!isNaN(present)) {
-        const totalDays = cls && cls.totalAttendance ? parseInt(cls.totalAttendance) : 0;
+    if (res.attendance !== undefined && res.attendance !== "") {
+        const totalDays = cls ? cls.totalAttendance : 0;
         if (totalDays > 0) {
-            const percent = Math.round((present / totalDays) * 100);
-            attText = `${present} / ${totalDays} (${percent}%)`;
+            const percent = Math.round((res.attendance / totalDays) * 100);
+            attText = `${res.attendance} / ${totalDays} (${percent}%)`;
         } else {
-            attText = `${present} Days`;
+            attText = `${res.attendance} Days`;
         }
     }
     safeSetText('mk-attendance', attText);
+    
     safeSetText('mk-date', new Date().toLocaleDateString());
 
     const tbody = document.getElementById('mk-tbody');
     tbody.innerHTML = '';
     let totalObtained = 0;
     let totalMax = 0;
-    const displaySubjects = subjects.length > 0 ? subjects : Object.keys(res.subjectMarks).map(k => ({id: k, name: 'Subject', fullMarks: 100, passMarks: 35}));
+
+    // Use subjects from result history if class deleted/changed
+    // Fallback to current subjects
+    const resultSubjects = Object.keys(res.subjectMarks).map(subId => {
+        return db.subjects.find(s => s.id === subId) || { name: 'Deleted Subject', fullMarks: 100, passMarks: 35, id: subId };
+    });
+    
+    // If current subjects match, use them (better for active classes)
+    const displaySubjects = subjects.length > 0 ? subjects : resultSubjects;
 
     displaySubjects.forEach(sub => {
         const obtained = parseInt(res.subjectMarks ? (res.subjectMarks[sub.id] || 0) : 0);
         const full = sub.fullMarks || 100;
+        const pass = sub.passMarks || 35;
+        
         totalObtained += obtained;
         totalMax += full;
+        
+        const status = obtained >= pass ? 'PASS' : 'FAIL';
+        const statusColor = obtained >= pass ? 'text-green-600' : 'text-red-600 font-bold';
         const gradeObj = calculateGrade((obtained/full)*100);
         
-        tbody.innerHTML += `<tr><td>${sub.name}</td><td>${full}</td><td>${obtained}</td><td><span class="grade-badge ${gradeObj.css}">${gradeObj.grade}</span></td></tr>`;
+        tbody.innerHTML += `
+            <tr class="border-b border-gray-100 last:border-0 hover:bg-gray-50">
+                <td class="p-3 text-gray-800 font-medium border-r border-gray-100">${sub.name}</td>
+                <td class="p-3 text-center text-gray-600 border-r border-gray-100">${full}</td>
+                <td class="p-3 text-center font-bold text-gray-900 border-r border-gray-100">${obtained}</td>
+                <td class="p-3 text-center"><span class="grade-badge ${gradeObj.css}">${gradeObj.grade}</span></td>
+            </tr>
+        `;
     });
 
     const percentage = totalMax > 0 ? ((totalObtained / totalMax) * 100).toFixed(2) : 0;
+    
+    // Update Grand Total in Footer
     safeSetText('mk-total-max', totalMax);
     safeSetText('mk-total-obt', totalObtained);
+
     safeSetText('mk-percentage', `${percentage}%`);
     safeSetText('mk-rank', getOrdinal(res.rank));
     
     const finalStatusEl = document.getElementById('mk-final-status');
     if(finalStatusEl) {
         finalStatusEl.innerText = res.status;
-        finalStatusEl.className = res.status === 'PASS' ? 'text-3xl font-black text-green-500' : 'text-3xl font-black text-red-500';
+        if (res.status === 'PASS') {
+            finalStatusEl.className = 'text-3xl font-black text-green-500';
+        } else {
+            finalStatusEl.className = 'text-3xl font-black text-red-500';
+        }
     }
 
     document.getElementById('view-student').classList.add('hidden');
