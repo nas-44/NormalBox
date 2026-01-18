@@ -2,6 +2,7 @@
 const firebaseConfig = {
     apiKey: "AIzaSyCeW2AWVvTa2LTwvoXH0fx4lmfWb-_83zE",
     authDomain: "normalbox-f21b1.firebaseapp.com",
+    // 👇 THIS LINE WAS MISSING!
     databaseURL: "https://normalbox-f21b1-default-rtdb.firebaseio.com",
     projectId: "normalbox-f21b1",
     storageBucket: "normalbox-f21b1.firebasestorage.app",
@@ -20,10 +21,10 @@ try {
     console.error("Firebase Init Error:", e);
     alert("Database Connection Failed. See Console.");
 }
-
+// --- GLOBAL CONFIGURATION ---
 const DB_KEY = 'normalbox_db_v1';
 const SESSION_KEY = 'normalbox_session_v1'; 
-const PROCESS_DELAY = 500; // Increased slightly for cloud
+const PROCESS_DELAY = 300; 
 const OWNER_CRED = { id: 'owner', pass: 'admin123' }; 
 
 let currentUser = null; 
@@ -33,73 +34,57 @@ let currentResultId = null;
 let cropper = null;
 let currentProfileImageData = null; 
 
-// --- CLOUD DATABASE SYSTEM ---
-
-// 1. Global cache to store data locally while app is running
-let localDataCache = { 
-    institutions: [], 
-    classes: [], 
-    subjects: [], 
-    students: [], 
-    exams: [], 
-    results: [] 
-};
-
-// 2. Fetch from Cloud on Startup
-async function initCloudDB() {
-    if (!dbCloud) return;
-    
-    // Show a loading overlay if possible, or just log
-    console.log("Syncing with Cloud...");
-    
-    try {
-        const snapshot = await dbCloud.ref('/').once('value');
-        const data = snapshot.val();
-        
-        if (data) {
-            // Merge cloud data into our structure
-            localDataCache = { ...localDataCache, ...data };
-            
-            // Ensure arrays exist (Firebase doesn't store empty arrays)
-            if (!localDataCache.institutions) localDataCache.institutions = [];
-            if (!localDataCache.students) localDataCache.students = [];
-            if (!localDataCache.results) localDataCache.results = [];
-            if (!localDataCache.classes) localDataCache.classes = [];
-            if (!localDataCache.exams) localDataCache.exams = [];
-            if (!localDataCache.subjects) localDataCache.subjects = [];
-            
-            console.log("Cloud Sync Complete");
-        } else {
-            console.log("Cloud Empty - Starting fresh");
-        }
-    } catch (error) {
-        console.error("Cloud Sync Failed:", error);
-        alert("Failed to load data from Cloud. Please refresh.");
+// --- UI HELPERS ---
+function setButtonLoading(btnId, isLoading) {
+    const btn = document.getElementById(btnId);
+    if (!btn) return;
+    if (isLoading) {
+        if (!btn.dataset.originalText) btn.dataset.originalText = btn.innerHTML;
+        btn.classList.add('btn-loading');
+        btn.innerHTML = `<span class="spinner"></span>`;
+    } else {
+        btn.classList.remove('btn-loading');
+        btn.innerHTML = btn.dataset.originalText || 'Submit';
     }
 }
 
-// 3. Get Data (Reads from memory - Fast & Synchronous)
-function getDB() {
-    // Return the cached object directly
-    return localDataCache;
+function showToast(msg, type = 'success') {
+    const container = document.getElementById('toast-container');
+    if (!container) return;
+    const div = document.createElement('div');
+    div.className = `toast-enter mb-3 p-4 rounded-lg shadow-lg text-white font-semibold flex items-center gap-3 ${type === 'success' ? 'bg-green-600' : 'bg-red-600'}`;
+    div.innerHTML = `<i class="fas ${type === 'success' ? 'fa-check-circle' : 'fa-exclamation-circle'}"></i> ${msg}`;
+    container.appendChild(div);
+    setTimeout(() => div.classList.add('toast-enter-active'), 10);
+    setTimeout(() => div.remove(), 3500);
 }
 
-// 4. Save Data (Updates memory + Pushes to Cloud)
-async function saveDB(data) { 
+function safeSetText(id, text) {
+    const el = document.getElementById(id);
+    if (el) el.innerText = text;
+}
+
+function closeModal() { 
+    const m1 = document.getElementById('modal-overlay'); if(m1) m1.classList.add('hidden');
+    const m2 = document.getElementById('modal-cropper'); if(m2) m2.classList.add('hidden');
+}
+
+// --- DATABASE & SESSION ---
+function getDB() {
+    const db = localStorage.getItem(DB_KEY);
+    // Initialize with all required arrays to prevent read errors
+    let data = db ? JSON.parse(db) : { institutions: [], classes: [], subjects: [], students: [], exams: [], results: [] };
+    if (!data.institutions) data.institutions = [];
+    if (!data.students) data.students = [];
+    if (!data.results) data.results = [];
+    return data;
+}
+
+function saveDB(data) { 
     try {
-        // Update Local Cache
-        localDataCache = data;
-        
-        // Save to LocalStorage (Backup)
         localStorage.setItem(DB_KEY, JSON.stringify(data)); 
-        
-        // Push to Firebase Cloud
-        if (dbCloud) {
-            await dbCloud.ref('/').set(data);
-            console.log("Saved to Cloud");
-        }
     } catch (e) {
-        showToast("Save Error: " + e.message, "error");
+        showToast("Storage Full! Image too large.", "error");
         console.error("Save DB Error:", e);
     }
 }
@@ -112,10 +97,8 @@ function saveSession(user, role) {
 
 function clearSession() { 
     localStorage.removeItem(SESSION_KEY); 
-    window.location.href = 'index.html'; 
+    window.location.href = 'index.html'; // Redirect to landing
 }
-
-// ... Rest of your code (UI Helpers, etc.) ...
 
 function restoreSession() {
     const session = JSON.parse(localStorage.getItem(SESSION_KEY));
@@ -164,14 +147,8 @@ const urlParams = new URLSearchParams(window.location.search);
 const portalInstId = urlParams.get('id');
 const isOwnerPage = window.location.pathname.includes('owner.html');
 
-window.onload = async () => {
-    // 1. Wait for Cloud Data
-    await initCloudDB(); 
-
-    // 2. Now it is safe to getDB()
+window.onload = () => {
     const db = getDB();
-    
-    // 3. Restore Session
     restoreSession();
 
     if (!isOwnerPage) {
@@ -182,6 +159,7 @@ window.onload = async () => {
             db.institutions.filter(i => i.isActive !== false).forEach(i => { 
                 select.innerHTML += `<option value="${i.id}">${i.name}</option>`; 
             });
+            // Trigger auth check if institutions exist
             if(select.options.length > 1) checkInstAuthMethod();
         }
 
@@ -197,6 +175,7 @@ window.onload = async () => {
             }
         }
 
+        // Set Dates
         safeSetText('current-date-display', new Date().toLocaleDateString());
         safeSetText('student-date-display', new Date().toLocaleDateString());
     }
