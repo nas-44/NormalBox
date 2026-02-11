@@ -799,6 +799,16 @@ function addStudent() {
 
 function addExam() { const name = document.getElementById('new-exam-name').value; if(!name) return; const db = getDB(); db.exams.push({ id: generateId(), institutionId: currentUser.id, name }); saveDB(db); showToast('Created'); showInstTab('exams'); }
 
+// Simple attribute-value escaping to avoid XSS in HTML attributes (single quote delimiter)
+function escapeAttr(str) {
+  return String(str)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/'/g, '&#39;')
+    .replace(/"/g, '&quot;');
+}
+
 // --- LOAD PUBLISH TABLE (FIXED CRASH) ---
 function loadPublishTable() { 
     const examId = document.getElementById('pub-exam').value; 
@@ -830,8 +840,11 @@ function loadPublishTable() {
         }).join('')}<td class="p-2 border-b text-center"><input type="number" class="w-16 p-1 border rounded text-center outline-none input-att" data-student="${st.id}" value="${att}"></td><td class="p-3 text-center font-bold text-gray-800 border-b border-l bg-gray-50 row-total">${total}</td><td class="p-3 text-center font-bold text-xs border-b row-status ${status==='PASS'?'text-green-600':'text-red-600'}">${status}</td></tr>`; 
     }); 
     
-    html += `</tbody></table></div><div class="fixed bottom-8 right-8 flex gap-2"><button onclick="downloadResults('pdf')" class="bg-red-500 text-white px-4 py-3 rounded-full shadow-xl hover:bg-red-600"><i class="fas fa-file-pdf"></i></button><button onclick="downloadResults('excel')" class="bg-green-600 text-white px-4 py-3 rounded-full shadow-xl hover:bg-green-700"><i class="fas fa-file-excel"></i></button><button id="btn-publish" onclick="saveResults('${examId}', '${classId}')" class="btn-master bg-blue-600 text-white px-8 py-3 rounded-full shadow-xl text-lg flex items-center gap-2 hover:bg-blue-700"><i class="fas fa-save"></i> Publish Results</button></div>`; 
-    document.getElementById('publish-table-container').innerHTML = html; 
+    // Escape examId and classId when interpolating into attributes
+    const safeExamId = escapeAttr(examId);
+    const safeClassId = escapeAttr(classId);
+    html += `</tbody></table></div><div class="fixed bottom-8 right-8 flex gap-2"><button onclick="downloadResults('pdf')" class="bg-red-500 text-white px-4 py-3 rounded-full shadow-xl hover:bg-red-600"><i class="fas fa-file-pdf"></i></button><button onclick="downloadResults('excel')" class="bg-green-600 text-white px-4 py-3 rounded-full shadow-xl hover:bg-green-700"><i class="fas fa-file-excel"></i></button><button id="btn-publish" onclick="saveResults('${safeExamId}', '${safeClassId}')" class="btn-master bg-blue-600 text-white px-8 py-3 rounded-full shadow-xl text-lg flex items-center gap-2 hover:bg-blue-700"><i class="fas fa-save"></i> Publish Results</button></div>`;
+    document.getElementById('publish-table-container').innerHTML = html;
 }
 
 function validateAndColor(input, passMark) { const max = parseInt(input.getAttribute('data-max')); let val = parseInt(input.value); if (val > max) { input.value = max; val = max; showToast('Max exceeded', 'error'); } if (input.value !== '') { if (val >= passMark) { input.classList.remove('text-red-500'); input.classList.add('text-green-600', 'font-bold'); } else { input.classList.remove('text-green-600'); input.classList.add('text-red-500', 'font-bold'); } } }
